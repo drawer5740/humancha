@@ -11,7 +11,8 @@ from PIL import (
     ImageChops,
     ImageDraw,
     ImageFilter,
-    ImageFont
+    ImageFont,
+    ImageOps,
 )
 
 WIDTH = 960
@@ -31,14 +32,13 @@ FONT_DIR = BASE_DIR / "fonts"
 REGULAR_FONT_PATH = FONT_DIR / "DejaVuSans.ttf"
 BOLD_FONT_PATH = FONT_DIR / "DejaVuSans-Bold.ttf"
 
-BACKGROUND = (232, 232, 229, 255)
 HIDDEN_COLOR = (53, 53, 53)
 DECOY_COLOR = (41, 41, 41)
 
 HIDDEN_OPACITY = 0.82
 DECOY_OPACITY = 0.50
 
-HIDDEN_BLUR = 6
+HIDDEN_BLUR = 3.5
 DECOY_OUTLINE = 5
 
 BACKGROUND_LINE_WIDTH = (2, 2, 3)
@@ -51,6 +51,24 @@ GLYPH_WIDTH_FACTOR = 0.78
 GLYPH_HEIGHT_SCALE = 1.14
 
 FONT_SIZE = 112
+
+BACKGROUND_STOPS = (
+    (241, 240, 234),
+    (224, 233, 231),
+    (238, 226, 226),
+)
+
+HIDDEN_GRADIENTS = (
+    ((39, 52, 63), (69, 68, 78)),
+    ((44, 64, 62), (69, 60, 68)),
+    ((56, 52, 68), (77, 66, 61)),
+)
+
+DECOY_GRADIENTS = (
+    ((89, 111, 111), (143, 93, 101)),
+    ((116, 94, 131), (80, 120, 121)),
+    ((139, 104, 78), (91, 111, 137)),
+)
 
 BACKGROUND_COLORS = [
     (170, 169, 162, 65),
@@ -149,7 +167,42 @@ def _cubic_bezier(
 
 
 # ==========================================
-# BACKGROUND
+# BACKGROUND GRADIENT
+# ==========================================
+
+def _gradient_background() -> Image.Image:
+
+    vertical = Image.linear_gradient("L").resize(
+        (WIDTH, HEIGHT),
+        Image.Resampling.BICUBIC
+    )
+
+    horizontal = vertical.rotate(
+        90,
+        expand=True
+    ).resize(
+        (WIDTH, HEIGHT),
+        Image.Resampling.BICUBIC
+    )
+
+    diagonal = ImageChops.blend(
+        horizontal,
+        vertical,
+        0.32
+    )
+
+    background = ImageOps.colorize(
+        diagonal,
+        black=BACKGROUND_STOPS[0],
+        mid=BACKGROUND_STOPS[1],
+        white=BACKGROUND_STOPS[2]
+    )
+
+    return background.convert("RGBA")
+
+
+# ==========================================
+# BACKGROUND INTERFERENCE
 # ==========================================
 
 def _draw_background(
@@ -157,8 +210,7 @@ def _draw_background(
     rng: random.Random
 ) -> None:
 
-    # Draw squiggly lines on their own layer
-    # so they can be blurred independently.
+    # Soft squiggly lines on a separate layer.
 
     line_layer = Image.new(
         "RGBA",
@@ -193,12 +245,10 @@ def _draw_background(
             y + rng.uniform(-50, 50)
         )
 
-        points = _cubic_bezier(
-            p0, p1, p2, p3
-        )
-
         line_draw.line(
-            points,
+            _cubic_bezier(
+                p0, p1, p2, p3
+            ),
             fill=rng.choice(BACKGROUND_COLORS),
             width=rng.choice(BACKGROUND_LINE_WIDTH)
         )
@@ -211,7 +261,7 @@ def _draw_background(
 
     image.alpha_composite(line_layer)
 
-    # Keep loops and ovals sharp.
+    # Sharp loops and ovals.
 
     draw = ImageDraw.Draw(
         image,
@@ -245,7 +295,6 @@ def _draw_background(
         y = rng.randint(0, HEIGHT - 1)
 
         radius = rng.choice((1, 1, 2))
-        color = rng.choice(BACKGROUND_COLORS)
 
         draw.ellipse(
             (
@@ -254,7 +303,7 @@ def _draw_background(
                 x + radius,
                 y + radius
             ),
-            fill=color
+            fill=rng.choice(BACKGROUND_COLORS)
         )
 
 
@@ -331,8 +380,26 @@ def _composite_mask(
     center_y: float,
     color: tuple[int, int, int],
     opacity: float,
-    blur: float = 0
+    blur: float = 0,
+    rotation: float = 0,
+    gradient: tuple[
+        tuple[int, int, int],
+        tuple[int, int, int]
+    ] | None = None
 ) -> None:
+
+    # Slight character rotation.
+
+    if abs(rotation) > 0.01:
+
+        mask = mask.rotate(
+            rotation,
+            resample=Image.Resampling.BICUBIC,
+            expand=True,
+            fillcolor=0
+        )
+
+    # Optional blur.
 
     if blur > 0:
 
@@ -363,11 +430,35 @@ def _composite_mask(
         lambda value: round(value * opacity)
     )
 
-    layer = Image.new(
-        "RGBA",
-        mask.size,
-        color + (0,)
-    )
+    # Apply a horizontal color gradient.
+
+    if gradient is not None:
+
+        start, end = gradient
+
+        gradient_mask = Image.linear_gradient(
+            "L"
+        ).rotate(
+            90,
+            expand=True
+        ).resize(
+            mask.size,
+            Image.Resampling.BICUBIC
+        )
+
+        layer = ImageOps.colorize(
+            gradient_mask,
+            black=start,
+            white=end
+        ).convert("RGBA")
+
+    else:
+
+        layer = Image.new(
+            "RGBA",
+            mask.size,
+            color + (255,)
+        )
 
     layer.putalpha(alpha)
 
@@ -425,8 +516,10 @@ def _draw_foreground_interference(
     )
 
     colors = (
-        (116, 123, 120, 65),
-        (164, 156, 150, 65)
+        (116, 123, 120, 55),
+        (164, 156, 150, 55),
+        (113, 124, 145, 45),
+        (158, 124, 132, 45)
     )
 
     for _ in range(12):
@@ -483,17 +576,16 @@ def render_webp(
         _load_fonts()
     )
 
-    image = Image.new(
-        "RGBA",
-        (WIDTH, HEIGHT),
-        BACKGROUND
-    )
+    image = _gradient_background()
 
     rng = random.Random(
         secrets.randbits(64)
     )
 
-    _draw_background(image, rng)
+    _draw_background(
+        image,
+        rng
+    )
 
     side_padding = 65
 
@@ -517,7 +609,7 @@ def render_webp(
             + cell_width * (index + 0.5)
         )
 
-        # Hidden layer: solid and blurred.
+        # Hidden layer.
 
         hidden_mask = _glyph_mask(
             hidden_char,
@@ -529,14 +621,16 @@ def render_webp(
         _composite_mask(
             image,
             hidden_mask,
-            center_x,
-            center_y,
+            center_x + rng.uniform(-2, 2),
+            center_y + rng.uniform(-5, 5),
             HIDDEN_COLOR,
             HIDDEN_OPACITY,
-            blur=HIDDEN_BLUR
+            blur=HIDDEN_BLUR,
+            rotation=rng.uniform(-3.5, 3.5),
+            gradient=rng.choice(HIDDEN_GRADIENTS)
         )
 
-        # Decoy layer: outlined and translucent.
+        # Decoy layer.
 
         decoy_mask = _glyph_mask(
             decoy_char,
@@ -551,11 +645,15 @@ def render_webp(
         _composite_mask(
             image,
             outline,
-            center_x,
-            center_y,
+            center_x + rng.uniform(-2, 2),
+            center_y + rng.uniform(-5, 5),
             DECOY_COLOR,
-            DECOY_OPACITY
+            DECOY_OPACITY,
+            rotation=rng.uniform(-4, 4),
+            gradient=rng.choice(DECOY_GRADIENTS)
         )
+
+    # Foreground interference.
 
     _draw_foreground_interference(
         image,
@@ -572,4 +670,3 @@ def render_webp(
     )
 
     return output.getvalue()
-
