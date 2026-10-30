@@ -730,7 +730,7 @@ async function verifyCaptcha() {
             showStatus("Session locked. Refresh the CAPTCHA.");
         } else {
             showStatus(
-                `Incorrect answer. ${result.attempts_remaining} attempts remaining.`
+                `Incorrect answer, try looking for capitalization errors, homoglyphs, or refresh. ${result.attempts_remaining} attempts remaining.`
             );
         }
 
