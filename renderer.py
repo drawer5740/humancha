@@ -40,10 +40,6 @@ FONT_FAMILIES = (
         "Roboto",
         FONT_DIR / "Roboto-Regular.ttf",
     ),
-    (
-        "OpenDyslexic",
-        FONT_DIR / "OpenDyslexic-Regular.ttf",
-    ),
 )
 
 HIDDEN_COLOR = (53, 53, 53)
