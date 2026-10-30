@@ -353,6 +353,14 @@ def homepage():
     return FileResponse(INDEX_FILE)
 
 
+@app.get("/humancha-logo.png", include_in_schema=False)
+def humancha_logo():
+    return FileResponse(
+        BASE_DIR / "humancha-logo.png",
+        media_type="image/png"
+    )
+
+
 # ==========================================
 # CAPTCHA CREATION
 # ==========================================
