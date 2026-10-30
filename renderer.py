@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import math
@@ -30,8 +29,30 @@ ALPHABET = (
 BASE_DIR = Path(__file__).resolve().parent
 FONT_DIR = BASE_DIR / "fonts"
 
-REGULAR_FONT_PATH = FONT_DIR / "DejaVuSans.ttf"
-BOLD_FONT_PATH = FONT_DIR / "DejaVuSans-Bold.ttf"
+# Each family is loaded independently. Missing font files are skipped.
+# Keep only font files that you are licensed to use and distribute.
+FONT_FAMILIES = (
+    (
+        "Verdana",
+        FONT_DIR / "Verdana.ttf",
+        FONT_DIR / "Verdana-Bold.ttf",
+    ),
+    (
+        "Roboto",
+        FONT_DIR / "Roboto-Regular.ttf",
+        FONT_DIR / "Roboto-Bold.ttf",
+    ),
+    (
+        "Georgia",
+        FONT_DIR / "Georgia.ttf",
+        FONT_DIR / "Georgia-Bold.ttf",
+    ),
+    (
+        "DejaVu Sans",
+        FONT_DIR / "DejaVuSans.ttf",
+        FONT_DIR / "DejaVuSans-Bold.ttf",
+    ),
+)
 
 HIDDEN_COLOR = (53, 53, 53)
 DECOY_COLOR = (41, 41, 41)
@@ -123,29 +144,54 @@ def generate_codes() -> tuple[str, str]:
 # FONT LOADING
 # ==========================================
 
-def _load_fonts():
+def _load_fonts() -> list[
+    tuple[ImageFont.FreeTypeFont, ImageFont.FreeTypeFont, bool]
+]:
+    """Load every available family as (regular, bold, has_bold_face)."""
 
-    if (
-        REGULAR_FONT_PATH.is_file()
-        and BOLD_FONT_PATH.is_file()
-    ):
-        return (
-            ImageFont.truetype(
-                str(REGULAR_FONT_PATH),
-                FONT_SIZE
-            ),
-            ImageFont.truetype(
-                str(BOLD_FONT_PATH),
-                FONT_SIZE
-            ),
-            True
-        )
+    loaded_fonts = []
 
+    for _name, regular_path, bold_path in FONT_FAMILIES:
+        if not regular_path.is_file():
+            continue
+
+        try:
+            regular_font = ImageFont.truetype(
+                str(regular_path),
+                FONT_SIZE
+            )
+
+            if bold_path.is_file():
+                bold_font = ImageFont.truetype(
+                    str(bold_path),
+                    FONT_SIZE
+                )
+                has_distinct_bold_face = True
+            else:
+                bold_font = regular_font
+                has_distinct_bold_face = False
+
+            loaded_fonts.append(
+                (
+                    regular_font,
+                    bold_font,
+                    has_distinct_bold_face,
+                )
+            )
+
+        except OSError:
+            # Ignore an invalid or unreadable font and try the next family.
+            continue
+
+    if loaded_fonts:
+        return loaded_fonts
+
+    # DejaVu files are missing too; use Pillow's bundled fallback.
     fallback = ImageFont.load_default(
         size=FONT_SIZE
     )
 
-    return fallback, fallback, False
+    return [(fallback, fallback, False)]
 
 
 # ==========================================
@@ -796,9 +842,7 @@ def render_webp(
             "Corresponding hidden and decoy glyphs must differ."
         )
 
-    regular_font, bold_font, has_distinct_bold_face = (
-        _load_fonts()
-    )
+    font_families = _load_fonts()
 
     image = _gradient_background()
 
@@ -833,13 +877,17 @@ def render_webp(
             + cell_width * (index + 0.5)
         )
 
-        # Hidden character.
+        # Choose a font family independently for this hidden character.
+
+        _, hidden_bold_font, hidden_has_bold_face = rng.choice(
+            font_families
+        )
 
         hidden_mask = _glyph_mask(
             hidden_char,
-            bold_font,
+            hidden_bold_font,
             target_width,
-            embolden=not has_distinct_bold_face
+            embolden=not hidden_has_bold_face
         )
 
         hidden_mask = _warp_mask(
@@ -862,11 +910,15 @@ def render_webp(
             gradient=rng.choice(HIDDEN_GRADIENTS)
         )
 
-        # Decoy character.
+        # Choose a font family independently for this decoy character.
+
+        decoy_regular_font, _, _ = rng.choice(
+            font_families
+        )
 
         decoy_mask = _glyph_mask(
             decoy_char,
-            regular_font,
+            decoy_regular_font,
             target_width
         )
 
