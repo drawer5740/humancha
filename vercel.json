@@ -1,8 +1,7 @@
-
 {
   "functions": {
     "app.py": {
-      "includeFiles": "{index.html,humancha-logo.png}",
+      "includeFiles": "{index.html,humancha-logo.png,fonts/**}",
       "maxDuration": 30
     }
   }
