@@ -1,13 +1,25 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ffffff">
+<!-- For standard browser tabs (Universal) -->
+<link rel="icon" type="image/png" sizes="32x32" href="/humancha-logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/humancha-logo.png">
+
+<!-- For iOS Home Screen icons, idk why they would use it. -->
+<link rel="apple-touch-icon" sizes="180x180" href="/humancha-logo.png">
 <title>Humancha</title>
 
 <style>
-* { box-sizing: border-box; }
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
 
 body {
     margin: 0;
@@ -18,84 +30,183 @@ body {
     line-height: 1.65;
 }
 
-main {
-    width: min(650px, calc(100% - 36px));
-    margin: 55px auto;
+a {
+    color: #333;
+    text-decoration: none;
 }
 
-header {
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 13px;
-    margin-bottom: 35px;
+a:hover {
+    color: #777;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+.site-header {
+    height: 62px;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.header-inner {
+    width: min(1050px, calc(100% - 40px));
+    height: 100%;
+    margin: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .brand {
-    font-size: 19px;
-    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
 }
 
-.brand span {
-    color: #777;
+.brand img {
+    display: block;
+    width: 125px;
+    height: auto;
+    object-fit: contain;
+}
+
+nav {
+    display: flex;
+    gap: 25px;
+}
+
+nav a {
+    color: #666;
+    font-size: 11px;
+}
+
+nav a:hover {
+    color: #222;
+}
+
+main {
+    width: min(1050px, calc(100% - 40px));
+    margin: 0 auto;
+}
+
+.intro {
+    display: grid;
+    grid-template-columns: 1fr 390px;
+    gap: 65px;
+    align-items: center;
+    padding: 65px 0 70px;
+}
+
+.intro h1 {
+    margin: 0 0 9px;
+    font-size: 27px;
     font-weight: normal;
+    letter-spacing: -1px;
+}
+
+.intro p {
+    margin: 0;
+    color: #777;
     font-size: 12px;
 }
 
-h1 {
-    font-size: 19px;
-    font-weight: normal;
-    margin: 0 0 5px;
+.intro a {
+    display: inline-block;
+    margin-top: 17px;
+    font-size: 11px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
-h2 {
-    font-size: 15px;
+.demo {
+    border: 1px solid #ddd;
+    background: #fff;
+}
+
+.demo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    border-bottom: 1px solid #ddd;
+}
+
+.demo-header strong {
+    font-size: 11px;
     font-weight: bold;
-    margin: 25px 0 7px;
 }
 
-p {
-    color: #666;
-    margin: 5px 0 15px;
+.demo-header span {
+    color: #999;
+    font-size: 10px;
+}
+
+.demo-body {
+    padding: 16px;
+}
+
+.demo-label {
+    margin-bottom: 9px;
+    color: #777;
+    font-size: 10px;
 }
 
 #captcha-image {
     display: block;
     width: 100%;
-    max-width: 390px;
     height: 110px;
     object-fit: contain;
-    background: #f4f4f4;
-    border: 1px solid #ddd;
+    background: #f3f3f1;
+    border: 1px solid #e3e3e0;
 }
 
 .controls {
     display: flex;
-    gap: 7px;
-    max-width: 390px;
-    margin-top: 10px;
+    gap: 6px;
+    margin-top: 9px;
 }
 
 input {
     flex: 1;
+    width: 0;
     min-width: 0;
-    padding: 10px;
+    padding: 9px;
     border: 1px solid #bbb;
     border-radius: 2px;
-    font: inherit;
+    outline: none;
+    background: #fff;
+    color: #222;
+}
+
+input:focus {
+    border-color: #555;
+}
+
+input::placeholder {
+    color: #999;
 }
 
 button {
-    padding: 9px 13px;
+    padding: 8px 12px;
     border: 1px solid #222;
     border-radius: 2px;
     background: #222;
-    color: white;
-    font: inherit;
+    color: #fff;
     cursor: pointer;
+    transition: background .15s ease;
+}
+
+button:hover:not(:disabled) {
+    background: #555;
 }
 
 button.secondary {
-    background: white;
+    background: #fff;
     color: #222;
+}
+
+button.secondary:hover:not(:disabled) {
+    background: #f1f1f1;
 }
 
 button:disabled {
@@ -104,131 +215,403 @@ button:disabled {
 }
 
 #status {
-    min-height: 24px;
-    margin-top: 9px;
-    font-size: 12px;
+    min-height: 22px;
+    margin-top: 8px;
+    color: #666;
+    font-size: 11px;
+}
+
+.demo-footer {
+    padding: 10px 15px;
+    border-top: 1px solid #e5e5e5;
+    color: #999;
+    font-size: 10px;
+}
+
+.audio-notice {
+    margin: 10px 0 0;
+    color: #888;
+    font-size: 10px;
 }
 
 hr {
     border: 0;
-    border-top: 1px solid #ddd;
-    margin: 45px 0 25px;
+    border-top: 1px solid #e5e5e5;
+    margin: 0;
+}
+
+.documentation {
+    padding: 55px 0 65px;
+}
+
+.section-heading {
+    margin-bottom: 30px;
+}
+
+.section-heading h2 {
+    margin: 0;
+    font-size: 19px;
+    font-weight: normal;
+}
+
+.section-heading p {
+    margin: 5px 0 0;
+    color: #777;
+    font-size: 12px;
+}
+
+.docs-layout {
+    display: grid;
+    grid-template-columns: 190px 1fr;
+    gap: 55px;
+}
+
+.sidebar {
+    align-self: start;
+    position: sticky;
+    top: 20px;
+}
+
+.sidebar-title {
+    margin-bottom: 10px;
+    color: #999;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+}
+
+.sidebar a {
+    display: block;
+    padding: 5px 0;
+    color: #666;
+    font-size: 11px;
+}
+
+.sidebar a:hover {
+    color: #222;
+}
+
+.doc-section {
+    padding-bottom: 25px;
+    margin-bottom: 25px;
+    border-bottom: 1px solid #e5e5e5;
+    scroll-margin-top: 25px;
+}
+
+.doc-section:last-child {
+    border-bottom: 0;
+}
+
+.doc-section h3 {
+    margin: 0 0 7px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.doc-section p {
+    margin: 5px 0 12px;
+    color: #666;
+    font-size: 12px;
+}
+
+.method {
+    display: inline-block;
+    margin-right: 8px;
+    color: #777;
+    font-family: Consolas, monospace;
+    font-size: 11px;
+    font-weight: bold;
 }
 
 pre {
     overflow-x: auto;
-    padding: 12px;
-    background: #f5f5f5;
+    padding: 13px;
+    margin: 12px 0;
     border: 1px solid #e3e3e3;
-    font: 12px/1.6 Consolas, monospace;
+    background: #f6f6f4;
+    color: #333;
+    font: 12px/1.7 Consolas, monospace;
 }
 
 code {
     font-family: Consolas, monospace;
 }
 
-footer {
-    border-top: 1px solid #ddd;
-    margin-top: 40px;
-    padding-top: 12px;
-    color: #888;
+.inline-code {
+    padding: 2px 4px;
+    background: #f0f0ee;
     font-size: 11px;
+}
+
+footer {
+    border-top: 1px solid #e5e5e5;
+    padding: 17px 0;
+}
+
+.footer-inner {
+    display: flex;
+    justify-content: space-between;
+    color: #999;
+    font-size: 10px;
+}
+
+@media (max-width: 760px) {
+    .intro {
+        grid-template-columns: 1fr;
+        gap: 30px;
+        padding: 45px 0;
+    }
+
+    .demo {
+        max-width: 480px;
+    }
+
+    .docs-layout {
+        grid-template-columns: 1fr;
+        gap: 25px;
+    }
+
+    .sidebar {
+        position: static;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px 18px;
+    }
+
+    .sidebar-title {
+        width: 100%;
+        margin-bottom: 0;
+    }
+}
+
+@media (max-width: 450px) {
+    .header-inner,
+    main {
+        width: calc(100% - 28px);
+    }
+
+    nav {
+        gap: 14px;
+    }
+
+    nav a {
+        font-size: 10px;
+    }
+
+    .intro h1 {
+        font-size: 24px;
+    }
+
+    .controls {
+        flex-wrap: wrap;
+    }
+
+    .controls input {
+        flex-basis: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    * {
+        transition: none !important;
+    }
 }
 </style>
 </head>
 
 <body>
+
+<header class="site-header">
+    <div class="header-inner">
+        <a class="brand" href="/">
+            <img src="/humancha-logo.png" alt="Humancha">
+        </a>
+
+        <nav>
+            <a href="#demo">Demo</a>
+            <a href="#docs">Documentation</a>
+        </nav>
+    </div>
+</header>
+
 <main>
 
-<header>
-    <div class="brand">humancha</div>
-</header>
-  
-<section>
-  <p>Humancha is a captcha based off of the <a href="https://www.mixfont.com/experiments/decoy-font" target="_blank">decoy font</a> by mixfont.</p>
-</section>
-
-<section>
-    <h1>Human verification</h1>
-    <p>Enter the characters shown below.</p>
-
-    <img id="captcha-image" alt="CAPTCHA challenge">
-
-    <div class="controls">
-        <input
-            id="answer"
-            type="text"
-            placeholder="Enter characters"
-            autocomplete="off"
-            spellcheck="false"
-            autocapitalize="off"
-            autocorrect="off"
-        >
-        <button id="verify">Verify</button>
-        <button id="refresh" class="secondary">Refresh</button>
+<section class="intro">
+    <div>
+        <h1>Humancha</h1>
+        <p>Humancha (portmanteau of Human and CAPTCHA) is a CAPTCHA API based on the <a href="https://www.mixfont.com/experiments/decoy-font" target="_blank" rel="noopener noreferrer">Decoy Font</a> by Mixfont.<br>It requires no Docker, no backend, and it is free and simple to use.</p>
+        <a href="#docs">API documentation ↓</a>
     </div>
 
-    <div id="status" aria-live="polite"></div>
+    <div>
+        <section class="demo" id="demo">
+            <div class="demo-header">
+                <strong>Human verification</strong>
+                <span>DEMO</span>
+            </div>
+
+            <div class="demo-body">
+                <div class="demo-label">Enter the characters shown below.</div>
+
+                <img id="captcha-image" alt="CAPTCHA challenge">
+
+                <div class="controls">
+                    <input
+                        id="answer"
+                        type="text"
+                        placeholder="Enter characters"
+                        autocomplete="off"
+                        spellcheck="false"
+                        autocapitalize="off"
+                        autocorrect="off"
+                        maxlength="7"
+                    >
+
+                    <button id="verify">Verify</button>
+                    <button id="refresh" class="secondary" aria-label="Refresh CAPTCHA">↻</button>
+                </div>
+
+                <div id="status" aria-live="polite"></div>
+            </div>
+
+            <div class="demo-footer">
+                CHALLENGES VERIFIED SERVER-SIDE
+            </div>
+        </section>
+
+        <p class="audio-notice">
+            Audio CAPTCHA support is currently unavailable.
+        </p>
+    </div>
 </section>
 
 <hr>
 
-<section>
-    <h1>Developer documentation</h1>
-    <p>
-        Humancha provides CAPTCHA challenges as WebP images.
-        Your website can display the image directly or retrieve
-        it with JavaScript for verification.
-    </p>
+<section class="documentation" id="docs">
+    <div class="section-heading">
+        <h2>Documentation</h2>
+        <p>API reference and integration details.</p>
+    </div>
 
-    <h2>GET /api/captcha</h2>
-    <p>
-        Creates a challenge. The response body is the WebP image.
-        The following response headers contain its session information:
-    </p>
-    <pre>
-Content-Type: image/webp
+    <div class="docs-layout">
+
+        <aside class="sidebar">
+            <div class="sidebar-title">Contents</div>
+            <a href="#overview">Overview</a>
+            <a href="#create">Create challenge</a>
+            <a href="#display">Display image</a>
+            <a href="#verify-doc">Verify</a>
+            <a href="#refresh-doc">Refresh</a>
+            <a href="#behavior">Challenge behavior</a>
+        </aside>
+
+        <div class="doc-content">
+
+            <section class="doc-section" id="overview">
+                <h3>Overview</h3>
+                <p>
+                    Humancha provides CAPTCHA challenges as WebP images.
+                    Retrieve a challenge with JavaScript and submit the
+                    user's answer for server-side verification.
+                </p>
+            </section>
+
+            <section class="doc-section" id="create">
+                <h3><span class="method">GET</span> /api/captcha</h3>
+
+                <p>
+                    Creates a challenge. The response body contains
+                    the WebP image. Session information is returned
+                    through response headers.
+                </p>
+
+                <pre>Content-Type: image/webp
 X-Captcha-Session: session-id
 X-Captcha-Hash: signed-challenge-token
 X-Captcha-Expires: unix-timestamp</pre>
+            </section>
 
-    <h2>Display the image directly</h2>
-    <pre>
-&lt;img
+            <section class="doc-section" id="display">
+                <h3>Display the image</h3>
+
+                <p>
+                    You can display a challenge using a regular
+                    <code class="inline-code">img</code> element.
+                </p>
+
+                <pre>&lt;img
   src="https://YOUR-API-DOMAIN/api/captcha"
   alt="CAPTCHA"
 &gt;</pre>
-    <p>
-        This displays the image, but an img element cannot read
-        the session and challenge headers. Use JavaScript fetch
-        if your website needs to verify the answer.
-    </p>
 
-    <h2>POST /api/captcha/verify</h2>
-    <p>Send a JSON request containing:</p>
-    <pre>
-{
+                <p>
+                    An image element cannot read the session and
+                    challenge headers. Use JavaScript fetch when
+                    verification is required.
+                </p>
+            </section>
+
+            <section class="doc-section" id="verify-doc">
+                <h3><span class="method">POST</span> /api/captcha/verify</h3>
+
+                <p>
+                    Submit the session ID, challenge hash, and
+                    user's answer as JSON.
+                </p>
+
+                <pre>{
   "session_id": "session-id",
   "captcha_hash": "signed-challenge-token",
   "answer": "user-answer"
 }</pre>
 
-    <h2>POST /api/captcha/refresh</h2>
-    <p>
-        Send the current session ID and challenge hash.
-        The response is a new WebP image with new session headers.
-    </p>
+                <p>
+                    Successful verification returns
+                    <code class="inline-code">valid: true</code>.
+                    Incorrect attempts are tracked per session.
+                </p>
+            </section>
 
-    <h2>What to expect</h2>
-    <p>
-        Challenges expire after their configured lifetime.
-        Verification is performed server-side. Incorrect
-        attempts are tracked against the CAPTCHA session.
-        A replacement challenge receives a new session.
-    </p>
+            <section class="doc-section" id="refresh-doc">
+                <h3><span class="method">POST</span> /api/captcha/refresh</h3>
+
+                <p>
+                    Send the current session ID and challenge hash.
+                    The response contains a new WebP image and new
+                    session headers.
+                </p>
+
+                <pre>{
+  "session_id": "session-id",
+  "captcha_hash": "signed-challenge-token"
+}</pre>
+            </section>
+
+            <section class="doc-section" id="behavior">
+                <h3>Challenge behavior</h3>
+
+                <p>
+                    Challenges expire after their configured lifetime.
+                    Verification is performed server-side. Incorrect
+                    attempts are tracked, and refreshed challenges
+                    receive new sessions.
+                </p>
+            </section>
+
+        </div>
+    </div>
 </section>
 
-<footer>Humancha</footer>
+<footer>
+    <div class="footer-inner">
+        <span>Humancha</span>
+        <span>CAPTCHA API</span>
+    </div>
+</footer>
 
 </main>
 
@@ -341,10 +724,10 @@ async function verifyCaptcha() {
 
         if (result.valid === true) {
             showStatus("Verified.");
-        } else if (result.locked === true) {
-            showStatus("Pretty suspicious, Refresh?");
         } else if (result.error === "expired") {
             showStatus("CAPTCHA expired. Refresh it.");
+        } else if (result.locked === true) {
+            showStatus("Session locked. Refresh the CAPTCHA.");
         } else {
             showStatus(
                 `Incorrect answer. ${result.attempts_remaining} attempts remaining.`
