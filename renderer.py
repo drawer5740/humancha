@@ -20,10 +20,10 @@ HEIGHT = 300
 LENGTH = 7
 
 ALPHABET = (
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "ABCDFGHIJKLMNOPQRSTUVWXYZ"
     "abcdefghijklmnpqrstuvwxyz"
     "023456789"
-    "&%@+?=-"
+    "#&%@+?=-"
 )
 
 BASE_DIR = Path(__file__).resolve().parent
