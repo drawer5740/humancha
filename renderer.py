@@ -29,15 +29,23 @@ ALPHABET = (
 BASE_DIR = Path(__file__).resolve().parent
 FONT_DIR = BASE_DIR / "fonts"
 
-# Each family is loaded independently. Missing font files are skipped.
-# Keep only font files that you are licensed to use and distribute.
+# Regular font files only. Missing or invalid files are skipped.
+# Use font files whose licenses permit redistribution with this project.
 FONT_FAMILIES = (
     (
-        "DejaVu Sans",
-        FONT_DIR / "DejaVuSans.ttf",
-        FONT_DIR / "DejaVuSans-Bold.ttf",
+        "Atkinson Hyperlegible Next",
+        FONT_DIR / "AtkinsonHyperlegibleNext-Regular.ttf",
+    ),
+    (
+        "Roboto",
+        FONT_DIR / "Roboto-Regular.ttf",
+    ),
+    (
+        "OpenDyslexic",
+        FONT_DIR / "OpenDyslexic-Regular.ttf",
     ),
 )
+
 HIDDEN_COLOR = (53, 53, 53)
 DECOY_COLOR = (41, 41, 41)
 
@@ -128,55 +136,31 @@ def generate_codes() -> tuple[str, str]:
 # FONT LOADING
 # ==========================================
 
-def _load_fonts() -> list[
-    tuple[ImageFont.FreeTypeFont, ImageFont.FreeTypeFont, bool]
-]:
-    """Load every available family as (regular, bold, has_bold_face)."""
+def _load_fonts() -> list[ImageFont.FreeTypeFont]:
+    """Load available regular font files, skipping missing or invalid files."""
 
     loaded_fonts = []
 
-    for _name, regular_path, bold_path in FONT_FAMILIES:
-        if not regular_path.is_file():
+    for _name, font_path in FONT_FAMILIES:
+        if not font_path.is_file():
             continue
 
         try:
-            regular_font = ImageFont.truetype(
-                str(regular_path),
-                FONT_SIZE
-            )
-
-            if bold_path.is_file():
-                bold_font = ImageFont.truetype(
-                    str(bold_path),
+            loaded_fonts.append(
+                ImageFont.truetype(
+                    str(font_path),
                     FONT_SIZE
                 )
-                has_distinct_bold_face = True
-            else:
-                bold_font = regular_font
-                has_distinct_bold_face = False
-
-            loaded_fonts.append(
-                (
-                    regular_font,
-                    bold_font,
-                    has_distinct_bold_face,
-                )
             )
-
         except OSError:
-            # Ignore an invalid or unreadable font and try the next family.
+            # Ignore invalid or unreadable font files.
             continue
 
     if loaded_fonts:
         return loaded_fonts
 
-    # DejaVu files are missing too; use Pillow's bundled fallback.
-    fallback = ImageFont.load_default(
-        size=FONT_SIZE
-    )
-
-    return [(fallback, fallback, False)]
-
+    # Safe fallback if none of the bundled font files are available.
+    return [ImageFont.load_default(size=FONT_SIZE)]
 
 # ==========================================
 # BEZIER CURVES
@@ -397,17 +381,13 @@ def _draw_background(
 def _glyph_mask(
     character: str,
     font: ImageFont.FreeTypeFont,
-    target_width: int,
-    *,
-    embolden: bool = False
+    target_width: int
 ) -> Image.Image:
 
     bbox = font.getbbox(character)
-
     left, top, right, bottom = bbox
 
-    stroke_width = 3 if embolden else 0
-    pad = 12 + stroke_width
+    pad = 12
 
     source = Image.new(
         "L",
@@ -424,9 +404,7 @@ def _glyph_mask(
         (pad - left, pad - top),
         character,
         font=font,
-        fill=255,
-        stroke_width=stroke_width,
-        stroke_fill=255
+        fill=255
     )
 
     ink_bounds = source.getbbox()
@@ -450,7 +428,6 @@ def _glyph_mask(
         ),
         Image.Resampling.LANCZOS
     )
-
 
 # ==========================================
 # CHARACTER WARPING
@@ -861,17 +838,14 @@ def render_webp(
             + cell_width * (index + 0.5)
         )
 
-        # Choose a font family independently for this hidden character.
+        # Choose a regular font independently for this hidden character.
 
-        _, hidden_bold_font, hidden_has_bold_face = rng.choice(
-            font_families
-        )
+        hidden_font = rng.choice(font_families)
 
         hidden_mask = _glyph_mask(
             hidden_char,
-            hidden_bold_font,
-            target_width,
-            embolden=not hidden_has_bold_face
+            hidden_font,
+            target_width
         )
 
         hidden_mask = _warp_mask(
@@ -894,15 +868,13 @@ def render_webp(
             gradient=rng.choice(HIDDEN_GRADIENTS)
         )
 
-        # Choose a font family independently for this decoy character.
+        # Choose a regular font independently for this decoy character.
 
-        decoy_regular_font, _, _ = rng.choice(
-            font_families
-        )
+        decoy_font = rng.choice(font_families)
 
         decoy_mask = _glyph_mask(
             decoy_char,
-            decoy_regular_font,
+            decoy_font,
             target_width
         )
 
