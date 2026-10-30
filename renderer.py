@@ -40,6 +40,10 @@ FONT_FAMILIES = (
         "Roboto",
         FONT_DIR / "Roboto-Regular.ttf",
     ),
+    (
+        "OpenDyslexic",
+        FONT_DIR / "OpenDyslexic-Regular.ttf",
+    ),
 )
 
 HIDDEN_COLOR = (53, 53, 53)
@@ -376,35 +380,35 @@ def _draw_background(
 
 def _glyph_mask(
     character: str,
-    font: ImageFont.FreeTypeFont,
+    font: ImageFont.ImageFont,
     target_width: int
 ) -> Image.Image:
+    """Render a glyph without forcing narrow characters to fill the cell."""
 
-    bbox = font.getbbox(character)
-    left, top, right, bottom = bbox
+    left, top, right, bottom = font.getbbox(character)
 
-    pad = 12
+    source_width = max(1, right - left)
+    source_height = max(1, bottom - top)
+    padding = 12
 
     source = Image.new(
         "L",
         (
-            max(1, right - left) + pad * 2,
-            max(1, bottom - top) + pad * 2
+            source_width + padding * 2,
+            source_height + padding * 2
         ),
         0
     )
 
     source_draw = ImageDraw.Draw(source)
-
     source_draw.text(
-        (pad - left, pad - top),
+        (padding - left, padding - top),
         character,
         font=font,
         fill=255
     )
 
     ink_bounds = source.getbbox()
-
     if not ink_bounds:
         raise ValueError(
             f"Could not render glyph: {character!r}"
@@ -412,18 +416,32 @@ def _glyph_mask(
 
     source = source.crop(ink_bounds)
 
-    target_height = max(
+    # Treat target_width as a maximum, not a forced width. This preserves
+    # naturally narrow glyphs such as I, i, l, and punctuation.
+    max_height = max(
         1,
         round(source.height * GLYPH_HEIGHT_SCALE)
     )
 
+    scale = min(
+        target_width / max(1, source.width),
+        max_height / max(1, source.height)
+    )
+
+    new_width = max(
+        1,
+        round(source.width * scale)
+    )
+    new_height = max(
+        1,
+        round(source.height * scale)
+    )
+
     return source.resize(
-        (
-            max(1, target_width),
-            target_height
-        ),
+        (new_width, new_height),
         Image.Resampling.LANCZOS
     )
+
 
 # ==========================================
 # CHARACTER WARPING
