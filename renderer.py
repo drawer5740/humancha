@@ -1,6 +1,7 @@
 
 from __future__ import annotations
 
+import math
 import random
 import secrets
 from io import BytesIO
@@ -38,17 +39,34 @@ DECOY_COLOR = (41, 41, 41)
 HIDDEN_OPACITY = 0.82
 DECOY_OPACITY = 0.50
 
-HIDDEN_BLUR = 3.5
+HIDDEN_BLUR = 3.0
 DECOY_OUTLINE = 5
 
+# Background interference.
 BACKGROUND_LINE_WIDTH = (2, 2, 3)
-BACKGROUND_LINE_BLUR = 1.5
+BACKGROUND_CORE_OPACITY = 145
+BACKGROUND_HALO_OPACITY = 23
+BACKGROUND_HALO_WIDTH = (7, 9, 11)
+BACKGROUND_HALO_BLUR = 2.5
 
+# Foreground interference.
 FOREGROUND_LINE_WIDTH = 3
-FOREGROUND_LINE_BLUR = 2.0
+FOREGROUND_CORE_OPACITY = 115
+FOREGROUND_HALO_OPACITY = 21
+FOREGROUND_HALO_WIDTH = 8
+FOREGROUND_HALO_BLUR = 2.8
 
+# Character distortion.
 GLYPH_WIDTH_FACTOR = 0.78
 GLYPH_HEIGHT_SCALE = 1.14
+
+GLYPH_SCALE_X = (0.94, 1.07)
+GLYPH_SCALE_Y = (0.95, 1.06)
+
+GLYPH_WARP_X = (1.5, 4.0)
+GLYPH_WARP_Y = (1.0, 3.0)
+
+GLYPH_ROTATION = 6.5
 
 FONT_SIZE = 112
 
@@ -71,13 +89,13 @@ DECOY_GRADIENTS = (
 )
 
 BACKGROUND_COLORS = [
-    (170, 169, 162, 65),
-    (170, 161, 157, 65),
-    (165, 173, 174, 65),
-    (179, 170, 160, 65),
-    (146, 155, 153, 65),
-    (185, 181, 171, 65),
-    (157, 158, 155, 65),
+    (170, 169, 162),
+    (170, 161, 157),
+    (165, 173, 174),
+    (179, 170, 160),
+    (146, 155, 153),
+    (185, 181, 171),
+    (157, 158, 155),
 ]
 
 
@@ -106,6 +124,7 @@ def generate_codes() -> tuple[str, str]:
 # ==========================================
 
 def _load_fonts():
+
     if (
         REGULAR_FONT_PATH.is_file()
         and BOLD_FONT_PATH.is_file()
@@ -144,6 +163,7 @@ def _cubic_bezier(
     points = []
 
     for step in range(steps + 1):
+
         t = step / steps
         u = 1 - t
 
@@ -172,7 +192,9 @@ def _cubic_bezier(
 
 def _gradient_background() -> Image.Image:
 
-    vertical = Image.linear_gradient("L").resize(
+    vertical = Image.linear_gradient(
+        "L"
+    ).resize(
         (WIDTH, HEIGHT),
         Image.Resampling.BICUBIC
     )
@@ -210,56 +232,87 @@ def _draw_background(
     rng: random.Random
 ) -> None:
 
-    # Soft squiggly lines on a separate layer.
+    # Separate strong lines and soft halos.
 
-    line_layer = Image.new(
+    core_layer = Image.new(
         "RGBA",
         (WIDTH, HEIGHT),
         (0, 0, 0, 0)
     )
 
-    line_draw = ImageDraw.Draw(
-        line_layer,
+    halo_layer = Image.new(
+        "RGBA",
+        (WIDTH, HEIGHT),
+        (0, 0, 0, 0)
+    )
+
+    core_draw = ImageDraw.Draw(
+        core_layer,
         "RGBA"
     )
 
-    for _ in range(42):
+    halo_draw = ImageDraw.Draw(
+        halo_layer,
+        "RGBA"
+    )
 
-        x = rng.uniform(-100, WIDTH + 100)
+    for _ in range(48):
+
+        x = rng.uniform(-120, WIDTH + 120)
         y = rng.uniform(0, HEIGHT)
 
-        p0 = (x - 240, y)
+        p0 = (
+            x - 260,
+            y + rng.uniform(-35, 35)
+        )
 
         p1 = (
-            x - 100,
-            y + rng.uniform(-100, 100)
+            x - rng.uniform(70, 160),
+            y + rng.uniform(-170, 170)
         )
 
         p2 = (
-            x + 100,
-            y + rng.uniform(-100, 100)
+            x + rng.uniform(70, 160),
+            y + rng.uniform(-170, 170)
         )
 
         p3 = (
-            x + 240,
-            y + rng.uniform(-50, 50)
+            x + 260,
+            y + rng.uniform(-70, 70)
         )
 
-        line_draw.line(
-            _cubic_bezier(
-                p0, p1, p2, p3
-            ),
-            fill=rng.choice(BACKGROUND_COLORS),
+        points = _cubic_bezier(
+            p0,
+            p1,
+            p2,
+            p3,
+            steps=36
+        )
+
+        color = rng.choice(BACKGROUND_COLORS)
+
+        # Faint, wide, blurred halo.
+        halo_draw.line(
+            points,
+            fill=color + (BACKGROUND_HALO_OPACITY,),
+            width=rng.choice(BACKGROUND_HALO_WIDTH)
+        )
+
+        # Stronger center line.
+        core_draw.line(
+            points,
+            fill=color + (BACKGROUND_CORE_OPACITY,),
             width=rng.choice(BACKGROUND_LINE_WIDTH)
         )
 
-    line_layer = line_layer.filter(
+    halo_layer = halo_layer.filter(
         ImageFilter.GaussianBlur(
-            BACKGROUND_LINE_BLUR
+            BACKGROUND_HALO_BLUR
         )
     )
 
-    image.alpha_composite(line_layer)
+    image.alpha_composite(halo_layer)
+    image.alpha_composite(core_layer)
 
     # Sharp loops and ovals.
 
@@ -283,7 +336,7 @@ def _draw_background(
                 x + rx,
                 y + ry
             ),
-            outline=rng.choice(BACKGROUND_COLORS),
+            outline=rng.choice(BACKGROUND_COLORS) + (65,),
             width=rng.choice((1, 2))
         )
 
@@ -303,7 +356,7 @@ def _draw_background(
                 x + radius,
                 y + radius
             ),
-            fill=rng.choice(BACKGROUND_COLORS)
+            fill=rng.choice(BACKGROUND_COLORS) + (65,)
         )
 
 
@@ -370,6 +423,135 @@ def _glyph_mask(
 
 
 # ==========================================
+# CHARACTER WARPING
+# ==========================================
+
+def _warp_mask(
+    mask: Image.Image,
+    rng: random.Random
+) -> Image.Image:
+
+    # Slightly vary each character's proportions.
+
+    scale_x = rng.uniform(*GLYPH_SCALE_X)
+    scale_y = rng.uniform(*GLYPH_SCALE_Y)
+
+    new_width = max(
+        1,
+        round(mask.width * scale_x)
+    )
+
+    new_height = max(
+        1,
+        round(mask.height * scale_y)
+    )
+
+    mask = mask.resize(
+        (new_width, new_height),
+        Image.Resampling.BICUBIC
+    )
+
+    # Add transparent padding for the curved displacement.
+
+    padding = 10
+
+    canvas = Image.new(
+        "L",
+        (
+            mask.width + padding * 2,
+            mask.height + padding * 2
+        ),
+        0
+    )
+
+    canvas.paste(
+        mask,
+        (padding, padding)
+    )
+
+    source = canvas.load()
+
+    warped = Image.new(
+        "L",
+        canvas.size,
+        0
+    )
+
+    destination = warped.load()
+
+    width, height = canvas.size
+
+    amplitude_x = rng.uniform(*GLYPH_WARP_X)
+    amplitude_y = rng.uniform(*GLYPH_WARP_Y)
+
+    phase_x = rng.uniform(0, math.tau)
+    phase_y = rng.uniform(0, math.tau)
+
+    # Smooth horizontal and vertical displacement.
+
+    x_displacement = [
+        amplitude_x * math.sin(
+            math.tau * y / max(1, height - 1) + phase_x
+        )
+        for y in range(height)
+    ]
+
+    y_displacement = [
+        amplitude_y * math.sin(
+            math.tau * x / max(1, width - 1) + phase_y
+        )
+        for x in range(width)
+    ]
+
+    # Bilinear sampling keeps the warped edges smooth.
+
+    for y in range(height):
+
+        for x in range(width):
+
+            source_x = x + x_displacement[y]
+            source_y = y + y_displacement[x]
+
+            if (
+                source_x < 0
+                or source_y < 0
+                or source_x >= width - 1
+                or source_y >= height - 1
+            ):
+                continue
+
+            x0 = int(source_x)
+            y0 = int(source_y)
+
+            fx = source_x - x0
+            fy = source_y - y0
+
+            top_left = source[x0, y0]
+            top_right = source[x0 + 1, y0]
+            bottom_left = source[x0, y0 + 1]
+            bottom_right = source[x0 + 1, y0 + 1]
+
+            top = (
+                top_left * (1 - fx)
+                + top_right * fx
+            )
+
+            bottom = (
+                bottom_left * (1 - fx)
+                + bottom_right * fx
+            )
+
+            value = (
+                top * (1 - fy)
+                + bottom * fy
+            )
+
+            destination[x, y] = round(value)
+
+    return warped
+
+
+# ==========================================
 # COMPOSITING
 # ==========================================
 
@@ -388,7 +570,7 @@ def _composite_mask(
     ] | None = None
 ) -> None:
 
-    # Slight character rotation.
+    # Independent character rotation.
 
     if abs(rotation) > 0.01:
 
@@ -438,9 +620,6 @@ def _composite_mask(
 
         gradient_mask = Image.linear_gradient(
             "L"
-        ).rotate(
-            90,
-            expand=True
         ).resize(
             mask.size,
             Image.Resampling.BICUBIC
@@ -504,48 +683,93 @@ def _draw_foreground_interference(
     rng: random.Random
 ) -> None:
 
-    line_layer = Image.new(
+    # Separate blurred halos from stronger center lines.
+
+    core_layer = Image.new(
         "RGBA",
         (WIDTH, HEIGHT),
         (0, 0, 0, 0)
     )
 
-    draw = ImageDraw.Draw(
-        line_layer,
+    halo_layer = Image.new(
+        "RGBA",
+        (WIDTH, HEIGHT),
+        (0, 0, 0, 0)
+    )
+
+    core_draw = ImageDraw.Draw(
+        core_layer,
+        "RGBA"
+    )
+
+    halo_draw = ImageDraw.Draw(
+        halo_layer,
         "RGBA"
     )
 
     colors = (
-        (116, 123, 120, 55),
-        (164, 156, 150, 55),
-        (113, 124, 145, 45),
-        (158, 124, 132, 45)
+        (116, 123, 120),
+        (164, 156, 150),
+        (113, 124, 145),
+        (158, 124, 132),
     )
 
     for _ in range(12):
 
-        x0 = (0, rng.uniform(0, HEIGHT))
-        x3 = (WIDTH, rng.uniform(0, HEIGHT))
+        x0 = (
+            rng.uniform(-80, 80),
+            rng.uniform(-40, HEIGHT + 40)
+        )
 
-        x1 = (240, rng.uniform(0, HEIGHT))
-        x2 = (680, rng.uniform(0, HEIGHT))
+        x3 = (
+            rng.uniform(WIDTH - 80, WIDTH + 80),
+            rng.uniform(-40, HEIGHT + 40)
+        )
 
-        draw.line(
-            _cubic_bezier(
-                x0, x1, x2, x3,
-                steps=32
-            ),
-            fill=rng.choice(colors),
+        x1 = (
+            rng.uniform(120, 390),
+            rng.uniform(-100, HEIGHT + 100)
+        )
+
+        x2 = (
+            rng.uniform(570, 850),
+            rng.uniform(-100, HEIGHT + 100)
+        )
+
+        points = _cubic_bezier(
+            x0,
+            x1,
+            x2,
+            x3,
+            steps=40
+        )
+
+        color = rng.choice(colors)
+
+        # Very transparent blurred outer line.
+
+        halo_draw.line(
+            points,
+            fill=color + (FOREGROUND_HALO_OPACITY,),
+            width=FOREGROUND_HALO_WIDTH
+        )
+
+        # More visible center line.
+
+        core_draw.line(
+            points,
+            fill=color + (FOREGROUND_CORE_OPACITY,),
             width=FOREGROUND_LINE_WIDTH
         )
 
-    line_layer = line_layer.filter(
+    halo_layer = halo_layer.filter(
         ImageFilter.GaussianBlur(
-            FOREGROUND_LINE_BLUR
+            FOREGROUND_HALO_BLUR
         )
     )
 
-    image.alpha_composite(line_layer)
+    image.alpha_composite(halo_layer)
+    image.alpha_composite(core_layer)
 
 
 # ==========================================
@@ -609,7 +833,7 @@ def render_webp(
             + cell_width * (index + 0.5)
         )
 
-        # Hidden layer.
+        # Hidden character.
 
         hidden_mask = _glyph_mask(
             hidden_char,
@@ -618,24 +842,37 @@ def render_webp(
             embolden=not has_distinct_bold_face
         )
 
+        hidden_mask = _warp_mask(
+            hidden_mask,
+            rng
+        )
+
         _composite_mask(
             image,
             hidden_mask,
-            center_x + rng.uniform(-2, 2),
-            center_y + rng.uniform(-5, 5),
+            center_x + rng.uniform(-3, 3),
+            center_y + rng.uniform(-7, 7),
             HIDDEN_COLOR,
             HIDDEN_OPACITY,
             blur=HIDDEN_BLUR,
-            rotation=rng.uniform(-3.5, 3.5),
+            rotation=rng.uniform(
+                -GLYPH_ROTATION,
+                GLYPH_ROTATION
+            ),
             gradient=rng.choice(HIDDEN_GRADIENTS)
         )
 
-        # Decoy layer.
+        # Decoy character.
 
         decoy_mask = _glyph_mask(
             decoy_char,
             regular_font,
             target_width
+        )
+
+        decoy_mask = _warp_mask(
+            decoy_mask,
+            rng
         )
 
         outline = _outline_mask(
@@ -645,11 +882,14 @@ def render_webp(
         _composite_mask(
             image,
             outline,
-            center_x + rng.uniform(-2, 2),
-            center_y + rng.uniform(-5, 5),
+            center_x + rng.uniform(-3, 3),
+            center_y + rng.uniform(-7, 7),
             DECOY_COLOR,
             DECOY_OPACITY,
-            rotation=rng.uniform(-4, 4),
+            rotation=rng.uniform(
+                -GLYPH_ROTATION,
+                GLYPH_ROTATION
+            ),
             gradient=rng.choice(DECOY_GRADIENTS)
         )
 
