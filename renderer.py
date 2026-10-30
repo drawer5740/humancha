@@ -21,8 +21,8 @@ LENGTH = 7
 
 ALPHABET = (
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    "abcdefghikmnpqrstuvwxyz"
-    "023456789"
+    "abcdfghikmnpqrstuvwxyz"
+    "23456789"
     "#&%@+?=-"
 )
 
@@ -52,7 +52,7 @@ DECOY_COLOR = (41, 41, 41)
 HIDDEN_OPACITY = 0.62
 DECOY_OPACITY = 0.50
 
-HIDDEN_BLUR = 6
+HIDDEN_BLUR = 5
 DECOY_OUTLINE = 5
 
 # Background interference.
