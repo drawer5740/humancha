@@ -20,8 +20,8 @@ HEIGHT = 300
 LENGTH = 7
 
 ALPHABET = (
-    "ABCDFGHIJKLMNOPQRSTUVWXYZ"
-    "abcdefghijkmnpqrstuvwxyz"
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "abcdefghikmnpqrstuvwxyz"
     "023456789"
     "#&%@+?=-"
 )
@@ -33,34 +33,18 @@ FONT_DIR = BASE_DIR / "fonts"
 # Keep only font files that you are licensed to use and distribute.
 FONT_FAMILIES = (
     (
-        "Verdana",
-        FONT_DIR / "Verdana.ttf",
-        FONT_DIR / "Verdana-Bold.ttf",
-    ),
-    (
-        "Roboto",
-        FONT_DIR / "Roboto-Regular.ttf",
-        FONT_DIR / "Roboto-Bold.ttf",
-    ),
-    (
-        "Georgia",
-        FONT_DIR / "Georgia.ttf",
-        FONT_DIR / "Georgia-Bold.ttf",
-    ),
-    (
         "DejaVu Sans",
         FONT_DIR / "DejaVuSans.ttf",
         FONT_DIR / "DejaVuSans-Bold.ttf",
     ),
 )
-
 HIDDEN_COLOR = (53, 53, 53)
 DECOY_COLOR = (41, 41, 41)
 
 HIDDEN_OPACITY = 0.62
 DECOY_OPACITY = 0.50
 
-HIDDEN_BLUR = 3
+HIDDEN_BLUR = 6
 DECOY_OUTLINE = 5
 
 # Background interference.
