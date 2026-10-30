@@ -21,7 +21,7 @@ LENGTH = 7
 
 ALPHABET = (
     "ABCDFGHIJKLMNOPQRSTUVWXYZ"
-    "abcdefghijklmnpqrstuvwxyz"
+    "abcdefghijkmnpqrstuvwxyz"
     "023456789"
     "#&%@+?=-"
 )
