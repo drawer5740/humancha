@@ -41,6 +41,12 @@ DECOY_OPACITY = 0.50
 HIDDEN_BLUR = 6
 DECOY_OUTLINE = 5
 
+BACKGROUND_LINE_WIDTH = (2, 2, 3)
+BACKGROUND_LINE_BLUR = 1.5
+
+FOREGROUND_LINE_WIDTH = 3
+FOREGROUND_LINE_BLUR = 2.0
+
 GLYPH_WIDTH_FACTOR = 0.78
 GLYPH_HEIGHT_SCALE = 1.14
 
@@ -98,7 +104,6 @@ def _load_fonts():
             True
         )
 
-    # Pillow's bundled scalable fallback.
     fallback = ImageFont.load_default(
         size=FONT_SIZE
     )
@@ -152,9 +157,20 @@ def _draw_background(
     rng: random.Random
 ) -> None:
 
-    draw = ImageDraw.Draw(image, "RGBA")
+    # Draw squiggly lines on their own layer
+    # so they can be blurred independently.
 
-    # Stringy curved lines.
+    line_layer = Image.new(
+        "RGBA",
+        (WIDTH, HEIGHT),
+        (0, 0, 0, 0)
+    )
+
+    line_draw = ImageDraw.Draw(
+        line_layer,
+        "RGBA"
+    )
+
     for _ in range(42):
 
         x = rng.uniform(-100, WIDTH + 100)
@@ -181,13 +197,27 @@ def _draw_background(
             p0, p1, p2, p3
         )
 
-        draw.line(
+        line_draw.line(
             points,
             fill=rng.choice(BACKGROUND_COLORS),
-            width=rng.choice((1, 1, 2))
+            width=rng.choice(BACKGROUND_LINE_WIDTH)
         )
 
-    # Loops and ovals.
+    line_layer = line_layer.filter(
+        ImageFilter.GaussianBlur(
+            BACKGROUND_LINE_BLUR
+        )
+    )
+
+    image.alpha_composite(line_layer)
+
+    # Keep loops and ovals sharp.
+
+    draw = ImageDraw.Draw(
+        image,
+        "RGBA"
+    )
+
     for _ in range(18):
 
         x = rng.uniform(0, WIDTH)
@@ -208,6 +238,7 @@ def _draw_background(
         )
 
     # Interference dots.
+
     for _ in range(260):
 
         x = rng.randint(0, WIDTH - 1)
@@ -382,11 +413,20 @@ def _draw_foreground_interference(
     rng: random.Random
 ) -> None:
 
-    draw = ImageDraw.Draw(image, "RGBA")
+    line_layer = Image.new(
+        "RGBA",
+        (WIDTH, HEIGHT),
+        (0, 0, 0, 0)
+    )
+
+    draw = ImageDraw.Draw(
+        line_layer,
+        "RGBA"
+    )
 
     colors = (
-        (116, 123, 120, 48),
-        (164, 156, 150, 48)
+        (116, 123, 120, 65),
+        (164, 156, 150, 65)
     )
 
     for _ in range(12):
@@ -403,8 +443,16 @@ def _draw_foreground_interference(
                 steps=32
             ),
             fill=rng.choice(colors),
-            width=1
+            width=FOREGROUND_LINE_WIDTH
         )
+
+    line_layer = line_layer.filter(
+        ImageFilter.GaussianBlur(
+            FOREGROUND_LINE_BLUR
+        )
+    )
+
+    image.alpha_composite(line_layer)
 
 
 # ==========================================
@@ -470,6 +518,7 @@ def render_webp(
         )
 
         # Hidden layer: solid and blurred.
+
         hidden_mask = _glyph_mask(
             hidden_char,
             bold_font,
@@ -488,6 +537,7 @@ def render_webp(
         )
 
         # Decoy layer: outlined and translucent.
+
         decoy_mask = _glyph_mask(
             decoy_char,
             regular_font,
@@ -522,3 +572,4 @@ def render_webp(
     )
 
     return output.getvalue()
+
