@@ -464,6 +464,86 @@ footer {
         transition: none !important;
     }
 }
+
+/* API code examples */
+
+.code-examples {
+    margin-top: 2rem;
+    border: 1px solid #e3e3e3;
+    background: #f6f6f4;
+}
+
+.code-example-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .25rem;
+    border-bottom: 1px solid #e3e3e3;
+    background: #f6f6f4;
+}
+
+.code-example-tabs {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    gap: .15rem;
+}
+
+.code-example-tab {
+    padding: .7rem .9rem;
+    border: 0;
+    border-radius: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: #777;
+    font-size: var(--small-text);
+}
+
+.code-example-tab:hover:not(:disabled) {
+    background: #ededeb;
+    color: #222;
+}
+
+.code-example-tab[aria-selected="true"] {
+    border-bottom-color: #333;
+    background: #fff;
+    color: #222;
+}
+
+.copy-code {
+    margin: .35rem .5rem;
+    padding: .4rem .7rem;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    background: #fff;
+    color: #444;
+    font-size: var(--small-text);
+}
+
+.copy-code:hover:not(:disabled) {
+    background: #eee;
+    color: #222;
+}
+
+.code-example-panel[hidden] {
+    display: none;
+}
+
+.code-example-panel pre {
+    margin: 0;
+    padding: 1rem;
+    border: 0;
+    background: transparent;
+    color: #333;
+    font: var(--small-text)/1.8 Consolas, monospace;
+    white-space: pre;
+    overflow-x: auto;
+}
+
+.code-example-panel code {
+    font: inherit;
+}
+
 </style>
 </head>
 
@@ -648,6 +728,200 @@ X-Captcha-Expires: unix-timestamp</pre>
 
         </div>
     </div>
+    
+<section class="doc-section" id="examples">
+    <h3>Code examples</h3>
+    <p>
+        Get started with Humancha using your preferred language.
+        Replace the example values with your challenge details.
+    </p>
+
+    <div class="code-examples" data-code-examples>
+
+        <div class="code-example-toolbar">
+            <div class="code-example-tabs" role="tablist" aria-label="Code examples">
+
+                <button
+                    class="code-example-tab"
+                    type="button"
+                    role="tab"
+                    id="tab-curl"
+                    aria-selected="true"
+                    aria-controls="example-curl"
+                    data-code-tab="curl"
+                >cURL</button>
+
+                <button
+                    class="code-example-tab"
+                    type="button"
+                    role="tab"
+                    id="tab-javascript"
+                    aria-selected="false"
+                    aria-controls="example-javascript"
+                    data-code-tab="javascript"
+                >JavaScript</button>
+
+                <button
+                    class="code-example-tab"
+                    type="button"
+                    role="tab"
+                    id="tab-python"
+                    aria-selected="false"
+                    aria-controls="example-python"
+                    data-code-tab="python"
+                >Python</button>
+
+            </div>
+
+            <button
+                class="copy-code"
+                type="button"
+                data-copy-code
+            >Copy</button>
+        </div>
+
+        <!-- CURL -->
+
+        <div
+            class="code-example-panel"
+            id="example-curl"
+            role="tabpanel"
+            aria-labelledby="tab-curl"
+            data-code-panel="curl"
+        >
+            <pre><code>curl -sS -D captcha-headers.txt -o captcha.webp https://humancha.l.cd/api/captcha
+
+# Read the session ID and hash from captcha-headers.txt.
+grep -iE 'X-Captcha-(Session|Hash):' captcha-headers.txt
+
+# Replace the placeholders with the returned values.
+curl -sS -X POST https://humancha.l.cd/api/captcha/verify \
+  -H 'Content-Type: application/json' \
+  -d '{"session_id":"SESSION_ID","captcha_hash":"CAPTCHA_HASH","answer":"YOUR_ANSWER"}'</code></pre>
+        </div>
+
+        <!-- JAVASCRIPT -->
+
+        <div
+            class="code-example-panel"
+            id="example-javascript"
+            role="tabpanel"
+            aria-labelledby="tab-javascript"
+            data-code-panel="javascript"
+            hidden
+        >
+            <pre><code>const API = "https://humancha.l.cd";
+
+let sessionId;
+let captchaHash;
+let imageUrl;
+
+const image = document.querySelector("#captcha-image");
+const answer = document.querySelector("#answer");
+
+async function loadCaptcha() {
+    const response = await fetch(`${API}/api/captcha`, {
+        cache: "no-store"
+    });
+
+    if (!response.ok) {
+        throw new Error("Could not create CAPTCHA.");
+    }
+
+    sessionId = response.headers.get("X-Captcha-Session");
+    captchaHash = response.headers.get("X-Captcha-Hash");
+
+    if (!sessionId || !captchaHash) {
+        throw new Error("Missing CAPTCHA headers.");
+    }
+
+    if (imageUrl) {
+        URL.revokeObjectURL(imageUrl);
+    }
+
+    imageUrl = URL.createObjectURL(await response.blob());
+    image.src = imageUrl;
+}
+
+async function verifyCaptcha() {
+    const response = await fetch(`${API}/api/captcha/verify`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            session_id: sessionId,
+            captcha_hash: captchaHash,
+            answer: answer.value
+        })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(result.detail || "Verification failed.");
+    }
+
+    return result;
+}
+
+// Load a challenge.
+loadCaptcha().catch(console.error);
+
+// Call verifyCaptcha() when the user submits their answer.</code></pre>
+        </div>
+
+        <!-- PYTHON -->
+
+        <div
+            class="code-example-panel"
+            id="example-python"
+            role="tabpanel"
+            aria-labelledby="tab-python"
+            data-code-panel="python"
+            hidden
+        >
+            <pre><code>import requests
+
+API = "https://humancha.l.cd"
+
+with requests.Session() as client:
+
+    # Create a challenge.
+    response = client.get(
+        f"{API}/api/captcha",
+        timeout=15
+    )
+    response.raise_for_status()
+
+    session_id = response.headers["X-Captcha-Session"]
+    captcha_hash = response.headers["X-Captcha-Hash"]
+
+    # Save the CAPTCHA image.
+    with open("captcha.webp", "wb") as file:
+        file.write(response.content)
+
+    # Enter the answer.
+    answer = input("CAPTCHA answer: ")
+
+    # Verify the answer.
+    verification = client.post(
+        f"{API}/api/captcha/verify",
+        json={
+            "session_id": session_id,
+            "captcha_hash": captcha_hash,
+            "answer": answer
+        },
+        timeout=15
+    )
+
+    verification.raise_for_status()
+
+    print(verification.json())</code></pre>
+        </div>
+
+    </div>
+</section>
 </section>
 
 <footer>
@@ -834,6 +1108,85 @@ answer.addEventListener("keydown", event => {
 
 loadCaptcha();
 </script>
+<script>
+document.querySelectorAll("[data-code-examples]").forEach(container => {
+    const tabs = Array.from(
+        container.querySelectorAll("[data-code-tab]")
+    );
 
+    const panels = Array.from(
+        container.querySelectorAll("[data-code-panel]")
+    );
+
+    const copyButton = container.querySelector("[data-copy-code]");
+
+    function activateTab(name) {
+        tabs.forEach(tab => {
+            const active = tab.dataset.codeTab === name;
+
+            tab.setAttribute("aria-selected", String(active));
+            tab.tabIndex = active ? 0 : -1;
+        });
+
+        panels.forEach(panel => {
+            panel.hidden = panel.dataset.codePanel !== name;
+        });
+
+        copyButton.textContent = "Copy";
+    }
+
+    tabs.forEach((tab, index) => {
+        tab.addEventListener("click", () => {
+            activateTab(tab.dataset.codeTab);
+        });
+
+        tab.addEventListener("keydown", event => {
+            if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") {
+                return;
+            }
+
+            event.preventDefault();
+
+            const direction = event.key === "ArrowRight" ? 1 : -1;
+            const nextIndex = (index + direction + tabs.length) % tabs.length;
+
+            tabs[nextIndex].focus();
+            activateTab(tabs[nextIndex].dataset.codeTab);
+        });
+    });
+
+    copyButton.addEventListener("click", async () => {
+        const activePanel = panels.find(panel => !panel.hidden);
+        const code = activePanel.querySelector("code").textContent;
+
+        try {
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(code);
+            } else {
+                const textarea = document.createElement("textarea");
+                textarea.value = code;
+                textarea.style.position = "fixed";
+                textarea.style.opacity = "0";
+
+                document.body.appendChild(textarea);
+                textarea.select();
+
+                const copied = document.execCommand("copy");
+                textarea.remove();
+
+                if (!copied) {
+                    throw new Error("Copy failed");
+                }
+            }
+
+            copyButton.textContent = "Copied";
+        } catch {
+            copyButton.textContent = "Copy failed";
+        }
+    });
+
+    activateTab("curl");
+});
+</script>
 </body>
 </html>
