@@ -6,14 +6,15 @@ import hmac
 import os
 import secrets
 import time
+
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from pathlib import Path
-from fastapi.middleware.cors import CORSMiddleware
 from uuid import UUID, uuid4
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 from supabase import Client, create_client
@@ -23,12 +24,13 @@ from renderer import generate_codes, render_webp
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
-STATIC_INDEX = BASE_DIR / "static" / "index.html"
+INDEX_FILE = BASE_DIR / "index.html"
+
 SESSION_TTL_SECONDS = int(os.getenv("CAPTCHA_TTL_SECONDS", "120"))
 MAX_ATTEMPTS = 10
 
 app = FastAPI(
-    title="Decoy CAPTCHA API",
+    title="Humancha CAPTCHA API",
     docs_url="/api/docs",
     redoc_url=None
 )
@@ -39,7 +41,13 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=[
+        "X-Captcha-Session",
+        "X-Captcha-Hash",
+        "X-Captcha-Expires"
+    ]
 )
+
 
 @lru_cache(maxsize=1)
 def get_db() -> Client:
@@ -70,7 +78,7 @@ def _master_secret() -> bytes:
 def _derive_key(label: str) -> bytes:
     return hmac.new(
         _master_secret(),
-        f"decoy-captcha:{label}:v1".encode("utf-8"),
+        f"humancha:{label}:v1".encode("utf-8"),
         hashlib.sha256
     ).digest()
 
@@ -301,20 +309,14 @@ class RefreshBody(BaseModel):
 # ==========================================
 
 @app.get("/", include_in_schema=False)
-def create_root_captcha(request: Request) -> Response:
-    _enforce_rate_limit(request, "create", 20)
-    return _create_challenge()
+def homepage():
+    return FileResponse(INDEX_FILE)
 
 
 @app.get("/api/captcha")
 def create_captcha(request: Request) -> Response:
     _enforce_rate_limit(request, "create", 20)
     return _create_challenge()
-
-
-@app.get("/demo", include_in_schema=False)
-def demo() -> FileResponse:
-    return FileResponse(STATIC_INDEX)
 
 
 @app.get("/health", include_in_schema=False)
