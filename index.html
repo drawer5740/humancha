@@ -723,7 +723,7 @@ async function verifyCaptcha() {
         }
 
         if (result.valid === true) {
-            showStatus("Verified.");
+            showStatus("Verified! ✅");
         } else if (result.error === "expired") {
             showStatus("CAPTCHA expired. Refresh it.");
         } else if (result.locked === true) {
