@@ -1,8 +1,9 @@
+
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
     "app.py": {
-      "includeFiles": "index.html",
+      "includeFiles": "{index.html,humancha-logo.png}",
       "maxDuration": 30
     }
   }
