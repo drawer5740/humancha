@@ -26,8 +26,9 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent
 INDEX_FILE = BASE_DIR / "index.html"
 
-SESSION_TTL_SECONDS = int(os.getenv("CAPTCHA_TTL_SECONDS", "120"))
-MAX_ATTEMPTS = 10
+SESSION_TTL_SECONDS = int(
+    os.getenv("CAPTCHA_TTL_SECONDS", "120")
+)
 
 app = FastAPI(
     title="Humancha CAPTCHA API",
@@ -49,6 +50,10 @@ app.add_middleware(
 )
 
 
+# ==========================================
+# DATABASE
+# ==========================================
+
 @lru_cache(maxsize=1)
 def get_db() -> Client:
     url = os.getenv("SUPABASE_URL")
@@ -62,6 +67,10 @@ def get_db() -> Client:
 
     return create_client(url, service_key)
 
+
+# ==========================================
+# SECRET MANAGEMENT
+# ==========================================
 
 def _master_secret() -> bytes:
     value = os.getenv("CAPTCHA_SECRET", "")
@@ -84,7 +93,9 @@ def _derive_key(label: str) -> bytes:
 
 
 def _answer_hmac(session_id: str, answer: str) -> str:
-    message = f"{session_id}:{answer.strip()}".encode("utf-8")
+    message = (
+        f"{session_id}:{answer.strip()}".encode("utf-8")
+    )
 
     return hmac.new(
         _derive_key("answer"),
@@ -93,10 +104,15 @@ def _answer_hmac(session_id: str, answer: str) -> str:
     ).hexdigest()
 
 
+# ==========================================
+# CHALLENGE TOKEN
+# ==========================================
+
 def _make_challenge_hash(
     session_id: str,
     expires_epoch: int
 ) -> str:
+
     nonce = secrets.token_urlsafe(18)
 
     message = (
@@ -148,7 +164,12 @@ def _check_challenge_hash(
     )
 
 
+# ==========================================
+# RATE LIMITING
+# ==========================================
+
 def _client_ip(request: Request) -> str:
+
     forwarded = request.headers.get(
         "x-forwarded-for",
         ""
@@ -202,7 +223,12 @@ def _enforce_rate_limit(
         )
 
 
+# ==========================================
+# SESSION CLEANUP
+# ==========================================
+
 def _delete_expired_sessions() -> None:
+
     now = datetime.now(timezone.utc).isoformat()
 
     (
@@ -213,6 +239,10 @@ def _delete_expired_sessions() -> None:
         .execute()
     )
 
+
+# ==========================================
+# IMAGE RESPONSE
+# ==========================================
 
 def _image_response(
     webp: bytes,
@@ -242,6 +272,10 @@ def _image_response(
         }
     )
 
+
+# ==========================================
+# CHALLENGE CREATION
+# ==========================================
 
 def _create_challenge() -> Response:
 
@@ -289,15 +323,20 @@ def _create_challenge() -> Response:
 
 class VerifyBody(BaseModel):
     session_id: UUID
+
     captcha_hash: str = Field(
         min_length=20,
         max_length=512
     )
-    answer: str = Field(max_length=128)
+
+    answer: str = Field(
+        max_length=128
+    )
 
 
 class RefreshBody(BaseModel):
     session_id: UUID
+
     captcha_hash: str = Field(
         min_length=20,
         max_length=512
@@ -305,24 +344,46 @@ class RefreshBody(BaseModel):
 
 
 # ==========================================
-# ROUTES
+# HOMEPAGE
 # ==========================================
 
 @app.get("/", include_in_schema=False)
 def homepage():
+
     return FileResponse(INDEX_FILE)
 
 
+# ==========================================
+# CAPTCHA CREATION
+# ==========================================
+
 @app.get("/api/captcha")
 def create_captcha(request: Request) -> Response:
-    _enforce_rate_limit(request, "create", 20)
+
+    _enforce_rate_limit(
+        request,
+        "create",
+        20
+    )
+
     return _create_challenge()
 
 
+# ==========================================
+# HEALTH CHECK
+# ==========================================
+
 @app.get("/health", include_in_schema=False)
 def health() -> dict:
-    return {"ok": True}
 
+    return {
+        "ok": True
+    }
+
+
+# ==========================================
+# CAPTCHA VERIFICATION
+# ==========================================
 
 @app.post("/api/captcha/verify")
 def verify_captcha(
@@ -330,7 +391,11 @@ def verify_captcha(
     request: Request
 ) -> dict:
 
-    _enforce_rate_limit(request, "verify", 60)
+    _enforce_rate_limit(
+        request,
+        "verify",
+        60
+    )
 
     session_id = str(body.session_id)
 
@@ -368,13 +433,21 @@ def verify_captcha(
     return result
 
 
+# ==========================================
+# CAPTCHA REFRESH
+# ==========================================
+
 @app.post("/api/captcha/refresh")
 def refresh_captcha(
     body: RefreshBody,
     request: Request
 ) -> Response:
 
-    _enforce_rate_limit(request, "refresh", 10)
+    _enforce_rate_limit(
+        request,
+        "refresh",
+        10
+    )
 
     session_id = str(body.session_id)
 
@@ -404,7 +477,7 @@ def refresh_captcha(
             detail="Session no longer exists. Request a new CAPTCHA."
         )
 
-    # Remove old session.
+    # Delete the previous session.
     (
         get_db()
         .table("captcha_sessions")
@@ -413,9 +486,13 @@ def refresh_captcha(
         .execute()
     )
 
-    # Create replacement challenge.
+    # Generate a replacement challenge.
     return _create_challenge()
 
+
+# ==========================================
+# SCHEDULED CLEANUP
+# ==========================================
 
 @app.get("/api/keepalive")
 def keepalive(request: Request) -> dict:
@@ -436,8 +513,8 @@ def keepalive(request: Request) -> dict:
             detail="Unauthorized"
         )
 
-    get_db().table(
-        "captcha_sessions"
-    ).select("id").limit(1).execute()
+    _delete_expired_sessions()
 
-    return {"ok": True}
+    return {
+        "ok": True
+    }
