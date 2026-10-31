@@ -715,7 +715,7 @@ footer {
             </div>
 
             <div class="demo-body">
-                <div class="demo-label">Enter the characters shown below.</div>
+                <div class="demo-label">Enter the characters shown below.<br>Not sure if one is capital or lowercase, it's most likely uppercase.    </div>
 
                 <img id="captcha-image" alt="Loading..">
 
@@ -1282,7 +1282,7 @@ async function verifyCaptcha() {
             showStatus("Session locked. Refresh the CAPTCHA.");
         } else {
             showStatus(
-                `Incorrect answer, try looking for capitalization errors, or refresh. ${result.attempts_remaining} attempts remaining.`
+                `Incorrect answer, try looking for typos, or refresh. ${result.attempts_remaining} attempts remaining.`
             );
         }
 
