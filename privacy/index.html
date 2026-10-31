@@ -1,0 +1,275 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Humancha Privacy Policy.">
+    <title>Privacy Policy — Humancha</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #fff;
+            color: #222;
+            font-family: Verdana, sans-serif;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        header {
+            border-bottom: 1px solid #e8e8e8;
+            padding: 18px 24px;
+        }
+
+        .nav {
+            max-width: 960px;
+            margin: auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .brand img {
+            width: 125px;
+            height: auto;
+            display: block;
+        }
+
+        nav {
+            display: flex;
+            gap: 22px;
+        }
+
+        a {
+            color: #333;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        main {
+            max-width: 760px;
+            margin: 65px auto;
+            padding: 0 24px;
+        }
+
+        h1 {
+            font-size: 25px;
+            font-weight: 400;
+            margin: 0 0 8px;
+        }
+
+        .updated {
+            color: #888;
+            font-size: 11px;
+            margin-bottom: 38px;
+        }
+
+        h2 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 32px;
+            margin-bottom: 8px;
+        }
+
+        p, li {
+            color: #555;
+        }
+
+        ul {
+            padding-left: 22px;
+        }
+
+        footer {
+            border-top: 1px solid #e8e8e8;
+            padding: 22px 24px;
+            color: #888;
+            font-size: 11px;
+        }
+
+        .footer-inner {
+            max-width: 960px;
+            margin: auto;
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 500px) {
+            header {
+                padding: 16px;
+            }
+
+            nav {
+                gap: 12px;
+                font-size: 11px;
+            }
+
+            main {
+                margin: 40px auto;
+                padding: 0 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<header>
+    <div class="nav">
+        <a class="brand" href="/">
+            <img src="/humancha-logo.png" alt="Humancha">
+        </a>
+
+        <nav>
+            <a href="/">Home</a>
+            <a href="/terms">Terms</a>
+        </nav>
+    </div>
+</header>
+
+<main>
+    <h1>Privacy Policy</h1>
+    <div class="updated">Effective date: October 31, 2026</div>
+
+    <p>
+        This Privacy Policy explains how Humancha processes
+        information when you use its website and CAPTCHA API.
+    </p>
+
+    <h2>1. Information We Process</h2>
+    <p>Depending on how you use Humancha, the service may process:</p>
+    <ul>
+        <li>CAPTCHA session identifiers.</li>
+        <li>Hashed CAPTCHA answers used for verification.</li>
+        <li>CAPTCHA expiration timestamps.</li>
+        <li>Verification attempts and results.</li>
+        <li>IP-derived identifiers used for rate limiting.</li>
+        <li>Technical request information processed by hosting infrastructure.</li>
+    </ul>
+    <p>
+        You do not need to provide your name or email address
+        to complete a CAPTCHA challenge.
+    </p>
+
+    <h2>2. CAPTCHA Sessions</h2>
+    <p>
+        Humancha creates temporary CAPTCHA sessions to manage
+        challenges and verification.
+    </p>
+    <p>
+        CAPTCHA challenges are configured to expire after a
+        maximum of 30 seconds.
+    </p>
+    <p>
+        The database may retain associated records until the
+        scheduled cleanup process removes expired sessions.
+        Challenge expiration does not necessarily mean every
+        associated record or server log is immediately deleted.
+    </p>
+
+    <h2>3. Answer Protection</h2>
+    <p>
+        Humancha stores a cryptographic hash of the expected
+        CAPTCHA answer rather than the original answer in its
+        session records.
+    </p>
+    <p>
+        This hash is used to compare submitted answers during verification.
+    </p>
+
+    <h2>4. IP Addresses and Rate Limiting</h2>
+    <p>
+        Humancha processes IP-derived information to help
+        enforce request limits and protect the API against abuse.
+    </p>
+    <p>
+        The application derives a hashed identifier for
+        rate-limit tracking.
+    </p>
+    <p>
+        Hosting providers and other infrastructure services may
+        independently process IP addresses and technical request
+        information in their logs.
+    </p>
+
+    <h2>5. Third-Party Services</h2>
+    <p>Humancha uses third-party infrastructure, including:</p>
+    <ul>
+        <li><strong>Vercel:</strong> Website and API hosting.</li>
+        <li><strong>Supabase:</strong> Database storage and verification operations.</li>
+        <li><strong>cron-job.org:</strong> Scheduled maintenance and expired-session cleanup.</li>
+    </ul>
+    <p>
+        These providers may process information as necessary
+        to provide their services, subject to their respective
+        privacy policies and terms.
+    </p>
+
+    <h2>6. Cookies and Browser Storage</h2>
+    <p>
+        Humancha's CAPTCHA functionality may use browser-side
+        resources to display and operate challenges.
+    </p>
+    <p>
+        We do not intentionally use CAPTCHA cookies for
+        advertising or behavioral tracking.
+    </p>
+
+    <h2>7. Data Security</h2>
+    <p>
+        Humancha uses measures such as cryptographic hashing,
+        signed challenge tokens, request limits, and restricted
+        database access to help protect its service and associated information.
+    </p>
+    <p>
+        However, no internet-based service can guarantee
+        absolute security.
+    </p>
+
+    <h2>8. Data Retention</h2>
+    <p>
+        CAPTCHA session records are temporary and are subject
+        to expiration and scheduled cleanup.
+    </p>
+    <p>
+        Other information, including infrastructure logs, may
+        be retained according to the policies and retention
+        settings of the relevant service providers.
+    </p>
+
+    <h2>9. Changes to This Policy</h2>
+    <p>
+        This Privacy Policy may be updated as Humancha changes.
+        Updated versions will be published on this page with
+        a revised effective date.
+    </p>
+
+    <h2>10. Contact</h2>
+    <p>
+        For privacy-related questions, contact:
+        <a href="mailto:drawer5740@is-alright.l.cd">
+            drawer5740@is-alright.l.cd
+        </a>
+    </p>
+</main>
+
+<footer>
+    <div class="footer-inner">
+        <span>© 2026 Humancha</span>
+        <span>
+            <a href="/terms">Terms</a>
+            &nbsp; · &nbsp;
+            <a href="/privacy">Privacy</a>
+        </span>
+    </div>
+</footer>
+</body>
+</html>
