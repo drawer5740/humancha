@@ -20,8 +20,7 @@ HEIGHT = 225
 LENGTH = 7
 
 ALPHABET = (
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    "abcdfghikmnpqrstuvwxyz"
+    "ABCDEFGHiJKLMNOPQRSTUVWXYZ"
     "23456789"
     "#&%@+?="
 )
