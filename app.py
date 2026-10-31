@@ -222,7 +222,154 @@ def _enforce_rate_limit(
             detail="Too many requests. Please try again shortly."
         )
 
+def _get_public_site(request: Request) -> dict:
 
+    site_key = request.headers.get(
+        "x-humancha-site-key", ""
+    ).strip()
+
+    if not site_key or len(site_key) > 128:
+        raise HTTPException(
+            status_code=401,
+            detail="Missing or invalid site key."
+        )
+
+    rows = (
+        get_db()
+        .table("captcha_sites")
+        .select("id, allowed_origins")
+        .eq("site_key", site_key)
+        .eq("active", True)
+        .limit(1)
+        .execute()
+        .data
+    ) or []
+
+    if not rows:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid site key."
+        )
+
+    site = rows[0]
+
+    origin = request.headers.get(
+        "origin", ""
+    ).strip().rstrip("/")
+
+    if not origin or origin not in (
+        site.get("allowed_origins") or []
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Origin is not allowed for this site."
+        )
+
+    return site
+
+
+def _get_server_site(request: Request) -> dict:
+
+    site_key = request.headers.get(
+        "x-humancha-site-key", ""
+    ).strip()
+
+    site_secret = request.headers.get(
+        "x-humancha-secret", ""
+    )
+
+    if (
+        not site_key
+        or not site_secret
+        or len(site_key) > 128
+        or len(site_secret) > 256
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Missing site credentials."
+        )
+
+    rows = (
+        get_db()
+        .table("captcha_sites")
+        .select("id, secret_hash")
+        .eq("site_key", site_key)
+        .eq("active", True)
+        .limit(1)
+        .execute()
+        .data
+    ) or []
+
+    if not rows:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid site credentials."
+        )
+
+    site = rows[0]
+
+    supplied_hash = hashlib.sha256(
+        site_secret.encode("utf-8")
+    ).hexdigest()
+
+    if not hmac.compare_digest(
+        str(site["secret_hash"]),
+        supplied_hash
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid site credentials."
+        )
+
+    return site
+
+
+def _get_demo_site(request: Request) -> dict:
+
+    site_key = os.getenv("HUMANCHA_DEMO_SITE_KEY", "")
+
+    expected_origin = os.getenv(
+        "HUMANCHA_DEMO_ORIGIN",
+        "https://humancha.l.cd"
+    ).rstrip("/")
+
+    origin = request.headers.get(
+        "origin", ""
+    ).strip().rstrip("/")
+
+    if not site_key:
+        raise HTTPException(
+            status_code=500,
+            detail="Demo site is not configured."
+        )
+
+    if origin != expected_origin:
+        raise HTTPException(
+            status_code=403,
+            detail="Demo origin is not allowed."
+        )
+
+    rows = (
+        get_db()
+        .table("captcha_sites")
+        .select("id, allowed_origins")
+        .eq("site_key", site_key)
+        .eq("active", True)
+        .limit(1)
+        .execute()
+        .data
+    ) or []
+
+    if not rows or origin not in (
+        rows[0].get("allowed_origins") or []
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Demo site configuration is invalid."
+        )
+
+    return rows[0]
+    
 # ==========================================
 # SESSION CLEANUP
 # ==========================================
@@ -277,8 +424,8 @@ def _image_response(
 # CHALLENGE CREATION
 # ==========================================
 
-def _create_challenge() -> Response:
-    
+def _create_challenge(site_id: str) -> Response:
+
     session_id = str(uuid4())
 
     hidden, decoy = generate_codes()
@@ -294,6 +441,7 @@ def _create_challenge() -> Response:
 
     get_db().table("captcha_sessions").insert({
         "id": session_id,
+        "site_id": site_id,
         "answer_hmac": _answer_hmac(
             session_id,
             hidden
@@ -314,7 +462,62 @@ def _create_challenge() -> Response:
         expires_at
     )
 
+def _verify_for_site(
+    body: VerifyBody,
+    site_id: str
+) -> dict:
 
+    session_id = str(body.session_id)
+
+    if not _check_challenge_hash(
+        session_id,
+        body.captcha_hash
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired challenge token."
+        )
+
+    existing = (
+        get_db()
+        .table("captcha_sessions")
+        .select("id")
+        .eq("id", session_id)
+        .eq("site_id", site_id)
+        .limit(1)
+        .execute()
+        .data
+    ) or []
+
+    if not existing:
+        raise HTTPException(
+            status_code=404,
+            detail="CAPTCHA session not found for this site."
+        )
+
+    candidate_hmac = _answer_hmac(
+        session_id,
+        body.answer
+    )
+
+    result = get_db().rpc(
+        "verify_captcha",
+        {
+            "p_session_id": session_id,
+            "p_answer_hmac": candidate_hmac
+        }
+    ).execute().data
+
+    if isinstance(result, list) and result:
+        result = result[0]
+
+    if not isinstance(result, dict):
+        raise HTTPException(
+            status_code=500,
+            detail="Unexpected verification response."
+        )
+
+    return result
 # ==========================================
 # REQUEST MODELS
 # ==========================================
@@ -404,48 +607,39 @@ def verify_captcha(
     request: Request
 ) -> dict:
 
+    site = _get_server_site(request)
+
     _enforce_rate_limit(
         request,
-        "verify",
+        f"verify:{site['id']}",
         60
     )
 
-    session_id = str(body.session_id)
-
-    if not _check_challenge_hash(
-        session_id,
-        body.captcha_hash
-    ):
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or expired challenge token."
-        )
-
-    candidate_hmac = _answer_hmac(
-        session_id,
-        body.answer
+    return _verify_for_site(
+        body,
+        str(site["id"])
     )
 
-    result = get_db().rpc(
-        "verify_captcha",
-        {
-            "p_session_id": session_id,
-            "p_answer_hmac": candidate_hmac
-        }
-    ).execute().data
+# shh....
 
-    if isinstance(result, list) and result:
-        result = result[0]
+@app.post("/api/demo/verify")
+def verify_demo_captcha(
+    body: VerifyBody,
+    request: Request
+) -> dict:
 
-    if not isinstance(result, dict):
-        raise HTTPException(
-            status_code=500,
-            detail="Unexpected verification response."
-        )
+    site = _get_demo_site(request)
 
-    return result
+    _enforce_rate_limit(
+        request,
+        f"demo_verify:{site['id']}",
+        60
+    )
 
-
+    return _verify_for_site(
+        body,
+        str(site["id"])
+    )
 # ==========================================
 # CAPTCHA REFRESH
 # ==========================================
