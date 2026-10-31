@@ -22,7 +22,7 @@ LENGTH = 7
 ALPHABET = (
     "ABCDEFGHiJKLMNOPQRSTUVWXYZ"
     "qpabnjkhgdt"
-    "23456789"
+    "3456789"
     "#&%@+?="
 )
 
