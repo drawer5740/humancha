@@ -104,6 +104,66 @@ main {
     margin-inline: auto;
 }
 
+.size-chart {
+    margin: 48px 0;
+    font-family: Verdana, sans-serif;
+}
+
+.size-chart h2 {
+    font-size: 20px;
+    font-weight: 400;
+    margin-bottom: 8px;
+}
+
+.size-chart .description {
+    font-size: 12px;
+    color: #777;
+    margin-bottom: 28px;
+}
+
+.size-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 65px;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 0;
+    font-size: 12px;
+}
+
+.size-track {
+    height: 9px;
+    background: #eaeaea;
+    overflow: hidden;
+}
+
+.size-fill {
+    height: 100%;
+    background: #999;
+}
+
+.size-fill.humancha {
+    background: #222;
+}
+
+.size-value {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.size-note {
+    font-size: 10px;
+    color: #888;
+    line-height: 1.6;
+    margin-top: 24px;
+}
+
+@media (max-width: 420px) {
+    .size-row {
+        grid-template-columns: 80px 1fr 55px;
+        gap: 8px;
+    }
+}
+
 .intro {
     display: grid;
     grid-template-columns: minmax(0, 1.15fr) minmax(19rem, .85fr);
@@ -637,6 +697,60 @@ footer {
             Audio CAPTCHA support is currently unavailable.
         </p>
     </div>
+</section>
+
+<section class="size-chart">
+    <h2>A fraction of the size, but not the smallest fraction.</h2>
+    <p class="description">
+        Approximate CAPTCHA sizes, in KB
+    </p>
+
+    <div class="size-row">
+        <span>hCaptcha</span>
+        <div class="size-track">
+            <div class="size-fill" style="width:100%"></div>
+        </div>
+        <span class="size-value">600 KB</span>
+    </div>
+
+    <div class="size-row">
+        <span>reCAPTCHA</span>
+        <div class="size-track">
+            <div class="size-fill" style="width:83.33%"></div>
+        </div>
+        <span class="size-value">500 KB</span>
+    </div>
+
+    <div class="size-row">
+        <span>ALTCHA</span>
+        <div class="size-track">
+            <div class="size-fill" style="width:5.67%"></div>
+        </div>
+        <span class="size-value">34 KB</span>
+    </div>
+
+    <div class="size-row">
+        <span>Humancha</span>
+        <div class="size-track">
+            <div class="size-fill humancha" style="width:5.5%"></div>
+        </div>
+        <span class="size-value">33 KB</span>
+    </div>
+
+    <div class="size-row">
+        <span>Cap</span>
+        <div class="size-track">
+            <div class="size-fill" style="width:3.33%"></div>
+        </div>
+        <span class="size-value">20 KB</span>
+    </div>
+
+    <p class="size-note">
+        Note: Humancha measures one generated CAPTCHA image.
+        Other figures represent published gzipped JavaScript
+        widget sizes. Measurements are not directly equivalent.
+        Actual sizes may vary by version and configuration.
+    </p>
 </section>
 
 <hr>
