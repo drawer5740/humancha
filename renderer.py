@@ -17,10 +17,10 @@ from PIL import (
 
 WIDTH = 720
 HEIGHT = 225
-LENGTH = 7
+LENGTH = 8
 
 ALPHABET = (
-    "ABCDEFGHiJKLMNOPQRSTUVWXYZ"
+    "ABCDEFGHiJLMNOPQRSTUVWXYZ"
     "qpabnjkhgdt"
     "3456789"
     "#&%@+?="
