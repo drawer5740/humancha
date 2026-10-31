@@ -8,95 +8,153 @@
     <title>Privacy Policy — Humancha</title>
 
     <style>
-        * {
-            box-sizing: border-box;
-        }
+* {
+    box-sizing: border-box;
+}
 
-        body {
-            margin: 0;
-            background: #fff;
-            color: #222;
-            font-family: Verdana, sans-serif;
-            font-size: 13px;
-            line-height: 1.8;
-        }
+html {
+    font-size: 100%;
+}
 
-        header {
-            border-bottom: 1px solid #e8e8e8;
-            padding: 18px 24px;
-        }
+body {
+    margin: 0;
+    background: #fff;
+    color: #222;
+    font-family: Verdana, sans-serif;
+    font-size: clamp(0.75rem, 0.25vw + 0.7rem, 0.8125rem);
+    line-height: 1.8;
+}
 
-        .nav {
-            max-width: 960px;
-            margin: auto;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
+header {
+    border-bottom: 0.0625rem solid #e8e8e8;
+    padding: clamp(0.875rem, 2vw, 1.125rem)
+             clamp(1rem, 4vw, 1.5rem);
+}
 
-        .brand img {
-            width: 90px;
-            height: auto;
-            display: block;
-        }
+.nav {
+    width: min(100%, 60rem);
+    margin-inline: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
 
-        nav {
-            display: flex;
-            gap: 22px;
-        }
+.brand img {
+    width: clamp(2.5rem, 6vw, 3.5rem);
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
 
-        a {
-            color: #333;
-            text-decoration: none;
-        }
+nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(0.75rem, 2vw, 1.375rem);
+}
 
-        a:hover {
-            text-decoration: underline;
-        }
+a {
+    color: #333;
+    text-decoration: none;
+}
 
-        main {
-            max-width: 760px;
-            margin: 65px auto;
-            padding: 0 24px;
-        }
+a:hover {
+    text-decoration: underline;
+}
 
-        h1 {
-            font-size: 25px;
-            font-weight: 400;
-            margin: 0 0 8px;
-        }
+main {
+    width: min(100% - 2rem, 47.5rem);
+    margin: clamp(2.5rem, 7vw, 4.0625rem) auto;
+}
 
-        .updated {
-            color: #888;
-            font-size: 11px;
-            margin-bottom: 38px;
-        }
+h1 {
+    font-size: clamp(1.375rem, 2.5vw, 1.5625rem);
+    font-weight: 400;
+    margin: 0 0 0.5rem;
+    line-height: 1.4;
+}
+
+.updated {
+    color: #888;
+    font-size: 0.6875rem;
+    margin-bottom: 2.375rem;
+}
+
+h2 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-top: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+p,
+li {
+    color: #555;
+}
+
+ul {
+    padding-left: 1.375rem;
+}
+
+footer {
+    border-top: 0.0625rem solid #e8e8e8;
+    padding: clamp(1.125rem, 3vw, 1.375rem)
+             clamp(1rem, 4vw, 1.5rem);
+    color: #888;
+    font-size: 0.6875rem;
+}
+
 .footer-inner {
-    max-width: 960px;
-    margin: auto;
+    width: min(100%, 60rem);
+    margin-inline: auto;
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    gap: 15px;
+    gap: 1rem;
 }
 
 .footer-brand {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.5rem;
     justify-self: start;
     white-space: nowrap;
+}
+
+.copyleft-icon {
+    width: 1.25em;
+    height: 1.25em;
+    flex: none;
+    display: block;
 }
 
 .footer-links {
     grid-column: 2;
     display: flex;
     justify-content: center;
-    gap: 18px;
+    gap: clamp(0.75rem, 2vw, 1.125rem);
     white-space: nowrap;
 }
 
-@media (max-width: 500px) {
+@media (max-width: 31.25rem) {
+    header {
+        padding-inline: 1rem;
+    }
+
+    .nav {
+        gap: 0.75rem;
+    }
+
+    nav {
+        gap: 0.75rem;
+        font-size: 0.6875rem;
+    }
+
+    main {
+        width: calc(100% - 2rem);
+        margin-block: 2.5rem;
+    }
+
     .footer-inner {
         display: flex;
         flex-direction: column;
@@ -105,54 +163,11 @@
 
     .footer-links {
         flex-wrap: wrap;
+        justify-content: center;
+        white-space: normal;
+        text-align: center;
     }
 }
-        h2 {
-            font-size: 14px;
-            font-weight: 600;
-            margin-top: 32px;
-            margin-bottom: 8px;
-        }
-
-        p, li {
-            color: #555;
-        }
-
-        ul {
-            padding-left: 22px;
-        }
-
-        footer {
-            border-top: 1px solid #e8e8e8;
-            padding: 22px 24px;
-            color: #888;
-            font-size: 11px;
-        }
-
-        .footer-inner {
-            max-width: 960px;
-            margin: auto;
-            display: flex;
-            justify-content: space-between;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-
-        @media (max-width: 500px) {
-            header {
-                padding: 16px;
-            }
-
-            nav {
-                gap: 12px;
-                font-size: 11px;
-            }
-
-            main {
-                margin: 40px auto;
-                padding: 0 20px;
-            }
-        }
     </style>
 </head>
 
@@ -302,8 +317,7 @@
 <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 100 100"
-    width="14"
-    height="14"
+    class="copyleft-icon"
     aria-label="Copyleft"
     role="img"
 >
