@@ -839,6 +839,7 @@ footer {
         <aside class="sidebar">
             <div class="sidebar-title">Contents</div>
             <a href="#overview">Overview</a>
+            <a href="#register">Register website</a>
             <a href="#authentication">Authentication</a>
             <a href="#create">Create challenge</a>
             <a href="#display">Display image</a>
@@ -859,7 +860,76 @@ footer {
                     No customer backend is required.
                 </p>
             </section>
+<section class="doc-section" id="register">
+    <h3><span class="method">POST</span> /api/sites/register</h3>
 
+    <p>
+        Register your website and receive a public site key.
+        Run this request from your website using browser JavaScript.
+        Humancha automatically reads the browser's Origin header.
+    </p>
+
+    <pre><code>const response = await fetch(
+    "https://humancha.l.cd/api/sites/register",
+    {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            site_name: "My Website"
+        })
+    }
+);
+
+const result = await response.json();
+
+if (!response.ok) {
+    throw new Error(result.detail || "Registration failed.");
+}
+
+console.log("Your Humancha site key:", result.site_key);</code></pre>
+
+    <p>
+        Registration returns a public site key. Registering the
+        same origin again returns its existing key.
+    </p>
+
+    <pre>{
+  "success": true,
+  "already_registered": false,
+  "site_name": "My Website",
+  "site_key": "hc_pub_your_generated_key",
+  "origin": "https://example.com"
+}</pre>
+
+    <p>
+        Run registration from the website you are registering.
+        The browser supplies the Origin header automatically.
+        No DNS configuration or customer backend is required.
+    </p>
+</section>
+            <section class="doc-section" id="authentication">
+    <h3>Authentication</h3>
+
+    <p>
+        Humancha uses one public site key to identify your
+        website. The key can safely be included in frontend
+        JavaScript.
+    </p>
+
+    <pre>X-Humancha-Site-Key: hc_pub_your_site_key</pre>
+
+    <p>
+        Include this header when creating, refreshing, and
+        verifying CAPTCHA challenges.
+    </p>
+
+    <p>
+        No private customer key, DNS verification, or
+        customer backend is required for the standard integration.
+    </p>
+</section>
             <section class="doc-section" id="authentication">
                 <h3>Authentication</h3>
 
@@ -869,11 +939,12 @@ footer {
                     required for the standard JavaScript integration.
                 </p>
 
-                <p>
-                    Send your public site key using the
-                    <code class="inline-code">X-Humancha-Site-Key</code>
-                    request header.
-                </p>
+<p>
+    Submit the session ID, challenge hash, and user's answer
+    as JSON. Include your public site key using the
+    <code class="inline-code">X-Humancha-Site-Key</code>
+    header. Humancha checks the answer through its API.
+</p>
 
                 <pre>X-Humancha-Site-Key: hc_pub_your_site_key</pre>
 
@@ -1075,20 +1146,26 @@ document.querySelector("#captcha-image").src = imageUrl;</code></pre>
                 aria-labelledby="tab-curl"
                 data-code-panel="curl"
             >
-                <pre><code># Create a challenge.
+                <pre><code># Register a website.
+# For terminal testing, supply Origin manually.
+curl -sS -X POST https://humancha.l.cd/api/sites/register \
+  -H 'Origin: https://example.com' \
+  -H 'Content-Type: application/json' \
+  -d '{"site_name":"My Website"}'
+
+# Create a challenge.
 curl -sS \
+  -H 'Origin: https://example.com' \
   -H 'X-Humancha-Site-Key: hc_pub_your_site_key' \
   -D captcha-headers.txt \
   -o captcha.webp \
   https://humancha.l.cd/api/captcha
 
-# Read the session ID and hash from captcha-headers.txt.
-grep -iE 'X-Captcha-(Session|Hash):' captcha-headers.txt
-
-# Verify the answer.
+# Verify an answer.
 curl -sS -X POST https://humancha.l.cd/api/captcha/verify \
-  -H 'Content-Type: application/json' \
+  -H 'Origin: https://example.com' \
   -H 'X-Humancha-Site-Key: hc_pub_your_site_key' \
+  -H 'Content-Type: application/json' \
   -d '{"session_id":"SESSION_ID","captcha_hash":"CAPTCHA_HASH","answer":"YOUR_ANSWER"}'</code></pre>
             </div>
 
@@ -1112,6 +1189,7 @@ let imageUrl;
 const image = document.querySelector("#captcha-image");
 const answer = document.querySelector("#answer");
 
+// Create a CAPTCHA.
 async function loadCaptcha() {
     const response = await fetch(`${API}/api/captcha`, {
         cache: "no-store",
@@ -1139,6 +1217,7 @@ async function loadCaptcha() {
     image.src = imageUrl;
 }
 
+// Verify the submitted answer.
 async function verifyCaptcha() {
     const response = await fetch(`${API}/api/captcha/verify`, {
         method: "POST",
@@ -1162,10 +1241,41 @@ async function verifyCaptcha() {
     return result;
 }
 
-// Load a challenge.
+// Refresh the challenge.
+async function refreshCaptcha() {
+    const response = await fetch(`${API}/api/captcha/refresh`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-Humancha-Site-Key": SITE_KEY
+        },
+        body: JSON.stringify({
+            session_id: sessionId,
+            captcha_hash: captchaHash
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error("Could not refresh CAPTCHA.");
+    }
+
+    sessionId = response.headers.get("X-Captcha-Session");
+    captchaHash = response.headers.get("X-Captcha-Hash");
+
+    if (imageUrl) {
+        URL.revokeObjectURL(imageUrl);
+    }
+
+    imageUrl = URL.createObjectURL(await response.blob());
+    image.src = imageUrl;
+
+    answer.value = "";
+}
+
 loadCaptcha().catch(console.error);
 
-// Call verifyCaptcha() when the user submits their answer.</code></pre>
+// Call verifyCaptcha() when the user submits.
+// Call refreshCaptcha() when they request a new image.</code></pre>
             </div>
 
             <!-- PYTHON -->
@@ -1181,18 +1291,43 @@ loadCaptcha().catch(console.error);
                 <pre><code>import requests
 
 API = "https://humancha.l.cd"
-SITE_KEY = "hc_pub_your_site_key"
 
-headers = {
-    "X-Humancha-Site-Key": SITE_KEY
-}
+# Change this to your website's origin.
+SITE_ORIGIN = "https://example.com"
+SITE_NAME = "My Website"
 
 with requests.Session() as client:
 
-    # Create a challenge.
+    # Python must supply Origin manually.
+    client.headers.update({
+        "Origin": SITE_ORIGIN
+    })
+
+    # 1. Register the website.
+    registration = client.post(
+        f"{API}/api/sites/register",
+        json={
+            "site_name": SITE_NAME
+        },
+        timeout=15
+    )
+
+    registration.raise_for_status()
+
+    site_data = registration.json()
+    site_key = site_data["site_key"]
+
+    print("Registration successful.")
+    print("Site key:", site_key)
+
+    # Add the public site key to subsequent requests.
+    client.headers.update({
+        "X-Humancha-Site-Key": site_key
+    })
+
+    # 2. Create a CAPTCHA.
     response = client.get(
         f"{API}/api/captcha",
-        headers=headers,
         timeout=15
     )
     response.raise_for_status()
@@ -1204,13 +1339,14 @@ with requests.Session() as client:
     with open("captcha.webp", "wb") as file:
         file.write(response.content)
 
-    # Enter the answer.
+    print("CAPTCHA saved as captcha.webp")
+
+    # 3. Enter the answer.
     answer = input("CAPTCHA answer: ")
 
-    # Verify the answer.
+    # 4. Verify the answer.
     verification = client.post(
         f"{API}/api/captcha/verify",
-        headers=headers,
         json={
             "session_id": session_id,
             "captcha_hash": captcha_hash,
@@ -1221,7 +1357,13 @@ with requests.Session() as client:
 
     verification.raise_for_status()
 
-    print(verification.json())</code></pre>
+    result = verification.json()
+
+    if result.get("valid") is True:
+        print("CAPTCHA verified!")
+    else:
+        print("CAPTCHA verification failed.")
+        print(result)</code></pre>
             </div>
 
         </div>
