@@ -379,7 +379,42 @@ hr {
     grid-template-columns: minmax(9rem, .25fr) minmax(0, 1fr);
     gap: clamp(2rem, 5vw, 3.5rem);
 }
+.footer-inner {
+    max-width: 960px;
+    margin: auto;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 15px;
+}
 
+.footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-self: start;
+    white-space: nowrap;
+}
+
+.footer-links {
+    grid-column: 2;
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    white-space: nowrap;
+}
+
+@media (max-width: 500px) {
+    .footer-inner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .footer-links {
+        flex-wrap: wrap;
+    }
+}
 .sidebar {
     align-self: start;
     position: sticky;
@@ -1088,10 +1123,35 @@ with requests.Session() as client:
     </div>
 </section>
 </section>
-
 <footer>
     <div class="footer-inner">
-        <span>© 2026 Humancha</span>
+        <span class="footer-brand">
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 100 100"
+                width="24"
+                height="24"
+                role="img"
+                aria-label="Copyleft"
+            >
+                <circle
+                    cx="50"
+                    cy="50"
+                    r="43"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="8"
+                />
+                <path
+                    d="M62 35 A19 19 0 1 0 62 65"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="8"
+                    stroke-linecap="round"
+                />
+            </svg>
+            <span>2026 Humancha</span>
+        </span>
 
         <span class="footer-links">
             <a href="/terms/">Terms and Conditions</a>
@@ -1099,7 +1159,6 @@ with requests.Session() as client:
         </span>
     </div>
 </footer>
-
 </main>
 
 <script>
