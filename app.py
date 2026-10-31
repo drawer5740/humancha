@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import hashlib
@@ -51,6 +50,29 @@ app.add_middleware(
 
 
 # ==========================================
+# REQUEST MODELS
+# ==========================================
+
+class VerifyBody(BaseModel):
+    session_id: UUID
+    captcha_hash: str = Field(
+        min_length=20,
+        max_length=512
+    )
+    answer: str = Field(
+        max_length=128
+    )
+
+
+class RefreshBody(BaseModel):
+    session_id: UUID
+    captcha_hash: str = Field(
+        min_length=20,
+        max_length=512
+    )
+
+
+# ==========================================
 # DATABASE
 # ==========================================
 
@@ -78,7 +100,7 @@ def _master_secret() -> bytes:
     if len(value) < 40:
         raise HTTPException(
             status_code=500,
-            detail="CAPTCHA_SECRET must be a randomly generated secret of at least 40 characters."
+            detail="CAPTCHA_SECRET must be at least 40 characters."
         )
 
     return value.encode("utf-8")
@@ -139,7 +161,6 @@ def _check_challenge_hash(
         expiry_text, nonce, supplied_signature = (
             challenge_hash.split(".", 2)
         )
-
         expires_epoch = int(expiry_text)
 
     except (ValueError, AttributeError):
@@ -169,7 +190,6 @@ def _check_challenge_hash(
 # ==========================================
 
 def _client_ip(request: Request) -> str:
-
     forwarded = request.headers.get(
         "x-forwarded-for",
         ""
@@ -222,8 +242,12 @@ def _enforce_rate_limit(
             detail="Too many requests. Please try again shortly."
         )
 
-def _get_public_site(request: Request) -> dict:
 
+# ==========================================
+# SITE AUTHENTICATION
+# ==========================================
+
+def _get_public_site(request: Request) -> dict:
     site_key = request.headers.get(
         "x-humancha-site-key", ""
     ).strip()
@@ -257,9 +281,12 @@ def _get_public_site(request: Request) -> dict:
         "origin", ""
     ).strip().rstrip("/")
 
-    if not origin or origin not in (
-        site.get("allowed_origins") or []
-    ):
+    allowed_origins = [
+        value.rstrip("/")
+        for value in (site.get("allowed_origins") or [])
+    ]
+
+    if not origin or origin not in allowed_origins:
         raise HTTPException(
             status_code=403,
             detail="Origin is not allowed for this site."
@@ -269,7 +296,6 @@ def _get_public_site(request: Request) -> dict:
 
 
 def _get_server_site(request: Request) -> dict:
-
     site_key = request.headers.get(
         "x-humancha-site-key", ""
     ).strip()
@@ -325,7 +351,6 @@ def _get_server_site(request: Request) -> dict:
 
 
 def _get_demo_site(request: Request) -> dict:
-
     site_key = os.getenv("HUMANCHA_DEMO_SITE_KEY", "")
 
     expected_origin = os.getenv(
@@ -360,22 +385,33 @@ def _get_demo_site(request: Request) -> dict:
         .data
     ) or []
 
-    if not rows or origin not in (
-        rows[0].get("allowed_origins") or []
-    ):
+    if not rows:
+        raise HTTPException(
+            status_code=500,
+            detail="Demo site configuration was not found."
+        )
+
+    site = rows[0]
+
+    allowed_origins = [
+        value.rstrip("/")
+        for value in (site.get("allowed_origins") or [])
+    ]
+
+    if origin not in allowed_origins:
         raise HTTPException(
             status_code=403,
             detail="Demo site configuration is invalid."
         )
 
-    return rows[0]
-    
+    return site
+
+
 # ==========================================
 # SESSION CLEANUP
 # ==========================================
 
 def _delete_expired_sessions() -> None:
-
     now = datetime.now(timezone.utc).isoformat()
 
     (
@@ -402,20 +438,14 @@ def _image_response(
         content=webp,
         media_type="image/webp",
         headers={
-            "Content-Disposition":
-                'inline; filename="CAPTCHA.WEBP"',
-
-            "Cache-Control":
-                "no-store, no-cache, must-revalidate, max-age=0",
-
+            "Content-Disposition": 'inline; filename="CAPTCHA.WEBP"',
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
             "Pragma": "no-cache",
-
             "X-Captcha-Session": session_id,
-
             "X-Captcha-Hash": challenge_hash,
-
-            "X-Captcha-Expires":
-                str(int(expires_at.timestamp()))
+            "X-Captcha-Expires": str(
+                int(expires_at.timestamp())
+            )
         }
     )
 
@@ -425,11 +455,9 @@ def _image_response(
 # ==========================================
 
 def _create_challenge(site_id: str) -> Response:
-
     session_id = str(uuid4())
 
     hidden, decoy = generate_codes()
-
     webp = render_webp(hidden, decoy)
 
     expires_at = (
@@ -461,6 +489,11 @@ def _create_challenge(site_id: str) -> Response:
         challenge_hash,
         expires_at
     )
+
+
+# ==========================================
+# SITE-BOUND VERIFICATION
+# ==========================================
 
 def _verify_for_site(
     body: VerifyBody,
@@ -518,39 +551,14 @@ def _verify_for_site(
         )
 
     return result
-# ==========================================
-# REQUEST MODELS
-# ==========================================
-
-class VerifyBody(BaseModel):
-    session_id: UUID
-
-    captcha_hash: str = Field(
-        min_length=20,
-        max_length=512
-    )
-
-    answer: str = Field(
-        max_length=128
-    )
-
-
-class RefreshBody(BaseModel):
-    session_id: UUID
-
-    captcha_hash: str = Field(
-        min_length=20,
-        max_length=512
-    )
 
 
 # ==========================================
-# HOMEPAGE
+# HOMEPAGE AND STATIC PAGES
 # ==========================================
 
 @app.get("/", include_in_schema=False)
 def homepage():
-
     return FileResponse(INDEX_FILE)
 
 
@@ -560,14 +568,21 @@ def humancha_logo():
         BASE_DIR / "humancha-logo.png",
         media_type="image/png"
     )
+
+
 @app.get("/terms/", include_in_schema=False)
 def terms():
-    return FileResponse(BASE_DIR / "terms" / "index.html")
+    return FileResponse(
+        BASE_DIR / "terms" / "index.html"
+    )
 
 
 @app.get("/privacy/", include_in_schema=False)
 def privacy():
-    return FileResponse(BASE_DIR / "privacy" / "index.html")
+    return FileResponse(
+        BASE_DIR / "privacy" / "index.html"
+    )
+
 
 # ==========================================
 # CAPTCHA CREATION
@@ -575,26 +590,15 @@ def privacy():
 
 @app.get("/api/captcha")
 def create_captcha(request: Request) -> Response:
+    site = _get_public_site(request)
 
     _enforce_rate_limit(
         request,
-        "create",
+        f"create:{site['id']}",
         20
     )
 
-    return _create_challenge()
-
-
-# ==========================================
-# HEALTH CHECK
-# ==========================================
-
-@app.get("/health", include_in_schema=False)
-def health() -> dict:
-
-    return {
-        "ok": True
-    }
+    return _create_challenge(str(site["id"]))
 
 
 # ==========================================
@@ -620,7 +624,10 @@ def verify_captcha(
         str(site["id"])
     )
 
-# shh....
+
+# ==========================================
+# DEMO VERIFICATION
+# ==========================================
 
 @app.post("/api/demo/verify")
 def verify_demo_captcha(
@@ -640,6 +647,8 @@ def verify_demo_captcha(
         body,
         str(site["id"])
     )
+
+
 # ==========================================
 # CAPTCHA REFRESH
 # ==========================================
@@ -650,13 +659,16 @@ def refresh_captcha(
     request: Request
 ) -> Response:
 
+    site = _get_public_site(request)
+
     _enforce_rate_limit(
         request,
-        "refresh",
+        f"refresh:{site['id']}",
         10
     )
 
     session_id = str(body.session_id)
+    site_id = str(site["id"])
 
     if not _check_challenge_hash(
         session_id,
@@ -673,10 +685,11 @@ def refresh_captcha(
         .table("captcha_sessions")
         .select("id")
         .eq("id", session_id)
+        .eq("site_id", site_id)
         .limit(1)
         .execute()
         .data
-    )
+    ) or []
 
     if not existing:
         raise HTTPException(
@@ -684,17 +697,29 @@ def refresh_captcha(
             detail="Session no longer exists. Request a new CAPTCHA."
         )
 
-    # Delete the previous session.
+    # Create the replacement first.
+    replacement = _create_challenge(site_id)
+
+    # Delete the previous session after successful creation.
     (
         get_db()
         .table("captcha_sessions")
         .delete()
         .eq("id", session_id)
+        .eq("site_id", site_id)
         .execute()
     )
 
-    # Generate a replacement challenge.
-    return _create_challenge()
+    return replacement
+
+
+# ==========================================
+# HEALTH CHECK
+# ==========================================
+
+@app.get("/health", include_in_schema=False)
+def health():
+    return {"ok": True}
 
 
 # ==========================================
@@ -703,7 +728,6 @@ def refresh_captcha(
 
 @app.get("/api/keepalive")
 def keepalive(request: Request) -> dict:
-
     expected = os.getenv("CRON_SECRET", "")
 
     supplied = request.headers.get(
@@ -722,6 +746,4 @@ def keepalive(request: Request) -> dict:
 
     _delete_expired_sessions()
 
-    return {
-        "ok": True
-    }
+    return {"ok": True}
