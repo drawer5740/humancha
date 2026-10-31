@@ -357,7 +357,14 @@ def humancha_logo():
         BASE_DIR / "humancha-logo.png",
         media_type="image/png"
     )
+@app.get("/terms/", include_in_schema=False)
+def terms():
+    return FileResponse(BASE_DIR / "terms" / "index.html")
 
+
+@app.get("/privacy/", include_in_schema=False)
+def privacy():
+    return FileResponse(BASE_DIR / "privacy" / "index.html")
 
 # ==========================================
 # CAPTCHA CREATION
