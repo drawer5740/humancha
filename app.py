@@ -10,6 +10,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import urlsplit
 from uuid import UUID, uuid4
 
 from dotenv import load_dotenv
@@ -54,6 +55,14 @@ app.add_middleware(
 # REQUEST MODELS
 # ==========================================
 
+class RegisterSiteBody(BaseModel):
+    site_name: str = Field(
+        default="My Website",
+        min_length=1,
+        max_length=80
+    )
+
+
 class VerifyBody(BaseModel):
     session_id: UUID
 
@@ -92,6 +101,91 @@ def get_db() -> Client:
         )
 
     return create_client(url, service_key)
+
+
+# ==========================================
+# ORIGIN HANDLING
+# ==========================================
+
+def _normalise_origin(value: str) -> str | None:
+    if not value or value.strip().lower() == "null":
+        return None
+
+    try:
+        parsed = urlsplit(value.strip())
+
+        scheme = parsed.scheme.lower()
+
+        if scheme not in ("http", "https"):
+            return None
+
+        if not parsed.netloc:
+            return None
+
+        if parsed.username is not None or parsed.password is not None:
+            return None
+
+        if parsed.path or parsed.query or parsed.fragment:
+            return None
+
+        host = parsed.hostname
+
+        if not host:
+            return None
+
+        port = parsed.port
+
+    except ValueError:
+        return None
+
+    host = host.lower()
+
+    if ":" in host:
+        host = f"[{host}]"
+
+    if port is not None:
+        if not (
+            (scheme == "https" and port == 443)
+            or (scheme == "http" and port == 80)
+        ):
+            host = f"{host}:{port}"
+
+    return f"{scheme}://{host}"
+
+
+def _registration_origin(request: Request) -> str:
+    origin = _normalise_origin(
+        request.headers.get("origin", "")
+    )
+
+    if not origin:
+        raise HTTPException(
+            status_code=400,
+            detail="A valid browser Origin header is required. Register from your website."
+        )
+
+    return origin
+
+
+def _request_origin(request: Request) -> str:
+    raw_origin = request.headers.get("origin", "")
+
+    if raw_origin:
+        origin = _normalise_origin(raw_origin)
+    else:
+        # Same-origin GET requests may omit the Origin header.
+        # Derive the API's own origin for the Humancha homepage.
+        origin = _normalise_origin(
+            f"{request.url.scheme}://{request.url.netloc}"
+        )
+
+    if not origin:
+        raise HTTPException(
+            status_code=403,
+            detail="Could not determine the request origin."
+        )
+
+    return origin
 
 
 # ==========================================
@@ -199,7 +293,6 @@ def _check_challenge_hash(
 # ==========================================
 
 def _client_ip(request: Request) -> str:
-
     forwarded = request.headers.get(
         "x-forwarded-for",
         ""
@@ -258,7 +351,6 @@ def _enforce_rate_limit(
 # ==========================================
 
 def _get_public_site(request: Request) -> dict:
-
     site_key = request.headers.get(
         "x-humancha-site-key",
         ""
@@ -273,7 +365,7 @@ def _get_public_site(request: Request) -> dict:
     rows = (
         get_db()
         .table("captcha_sites")
-        .select("id, allowed_origins")
+        .select("id, site_name, allowed_origins")
         .eq("site_key", site_key)
         .eq("active", True)
         .limit(1)
@@ -288,26 +380,91 @@ def _get_public_site(request: Request) -> dict:
         )
 
     site = rows[0]
-
-    origin = request.headers.get(
-        "origin",
-        ""
-    ).strip().rstrip("/")
+    origin = _request_origin(request)
 
     allowed_origins = [
-        value.rstrip("/")
+        _normalise_origin(value)
         for value in (site.get("allowed_origins") or [])
     ]
 
-    # Browsers may omit Origin on same-origin GET requests.
-    # When Origin is supplied, enforce the registered origin.
-    if origin and origin not in allowed_origins:
+    if origin not in allowed_origins:
         raise HTTPException(
             status_code=403,
-            detail="Origin is not allowed for this site."
+            detail="Origin is not registered for this site key."
         )
 
     return site
+
+
+# ==========================================
+# SITE REGISTRATION
+# ==========================================
+
+@app.post("/api/sites/register")
+def register_site(
+    body: RegisterSiteBody,
+    request: Request
+) -> dict:
+
+    origin = _registration_origin(request)
+
+    _enforce_rate_limit(
+        request,
+        "register",
+        5
+    )
+
+    site_name = body.site_name.strip()
+
+    if not site_name:
+        raise HTTPException(
+            status_code=422,
+            detail="Site name cannot be empty."
+        )
+
+    # Reuse the existing key for an already registered origin.
+    # Site keys are public identifiers, not passwords.
+    existing = (
+        get_db()
+        .table("captcha_sites")
+        .select("site_name, site_key")
+        .eq("active", True)
+        .contains("allowed_origins", [origin])
+        .limit(1)
+        .execute()
+        .data
+    ) or []
+
+    if existing:
+        site = existing[0]
+
+        return {
+            "success": True,
+            "already_registered": True,
+            "site_name": site["site_name"],
+            "site_key": site["site_key"],
+            "origin": origin
+        }
+
+    site_key = (
+        "hc_pub_" + secrets.token_hex(24)
+    )
+
+    get_db().table("captcha_sites").insert({
+        "id": str(uuid4()),
+        "site_name": site_name,
+        "site_key": site_key,
+        "allowed_origins": [origin],
+        "active": True
+    }).execute()
+
+    return {
+        "success": True,
+        "already_registered": False,
+        "site_name": site_name,
+        "site_key": site_key,
+        "origin": origin
+    }
 
 
 # ==========================================
@@ -423,7 +580,6 @@ def _verify_for_site(
             detail="Invalid or expired challenge token."
         )
 
-    # Ensure that the session belongs to the requesting site.
     existing = (
         get_db()
         .table("captcha_sessions")
@@ -472,13 +628,11 @@ def _verify_for_site(
 
 @app.get("/", include_in_schema=False)
 def homepage():
-
     return FileResponse(INDEX_FILE)
 
 
 @app.get("/humancha-logo.png", include_in_schema=False)
 def humancha_logo():
-
     return FileResponse(
         BASE_DIR / "humancha-logo.png",
         media_type="image/png"
@@ -487,7 +641,6 @@ def humancha_logo():
 
 @app.get("/terms/", include_in_schema=False)
 def terms():
-
     return FileResponse(
         BASE_DIR / "terms" / "index.html"
     )
@@ -495,7 +648,6 @@ def terms():
 
 @app.get("/privacy/", include_in_schema=False)
 def privacy():
-
     return FileResponse(
         BASE_DIR / "privacy" / "index.html"
     )
@@ -506,9 +658,7 @@ def privacy():
 # ==========================================
 
 @app.get("/api/captcha")
-def create_captcha(
-    request: Request
-) -> Response:
+def create_captcha(request: Request) -> Response:
 
     site = _get_public_site(request)
 
@@ -518,9 +668,7 @@ def create_captcha(
         20
     )
 
-    return _create_challenge(
-        str(site["id"])
-    )
+    return _create_challenge(str(site["id"]))
 
 
 # ==========================================
@@ -615,11 +763,8 @@ def refresh_captcha(
 # ==========================================
 
 @app.get("/health", include_in_schema=False)
-def health() -> dict:
-
-    return {
-        "ok": True
-    }
+def health():
+    return {"ok": True}
 
 
 # ==========================================
@@ -627,9 +772,7 @@ def health() -> dict:
 # ==========================================
 
 @app.get("/api/keepalive")
-def keepalive(
-    request: Request
-) -> dict:
+def keepalive(request: Request) -> dict:
 
     expected = os.getenv("CRON_SECRET", "")
 
