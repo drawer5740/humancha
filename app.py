@@ -278,9 +278,7 @@ def _image_response(
 # ==========================================
 
 def _create_challenge() -> Response:
-
-    _delete_expired_sessions()
-
+    
     session_id = str(uuid4())
 
     hidden, decoy = generate_codes()
