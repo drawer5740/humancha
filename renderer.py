@@ -15,8 +15,8 @@ from PIL import (
     ImageOps,
 )
 
-WIDTH = 960
-HEIGHT = 300
+WIDTH = 720
+HEIGHT = 225
 LENGTH = 7
 
 ALPHABET = (
@@ -81,7 +81,7 @@ GLYPH_WARP_Y = (1.0, 3.0)
 
 GLYPH_ROTATION = 6.5
 
-FONT_SIZE = 112
+FONT_SIZE = 84
 
 BACKGROUND_STOPS = (
     (241, 240, 234),
@@ -452,124 +452,25 @@ def _warp_mask(
     rng: random.Random
 ) -> Image.Image:
 
-    # Slightly vary each character's proportions.
-
     scale_x = rng.uniform(*GLYPH_SCALE_X)
     scale_y = rng.uniform(*GLYPH_SCALE_Y)
 
-    new_width = max(
-        1,
-        round(mask.width * scale_x)
-    )
-
-    new_height = max(
-        1,
-        round(mask.height * scale_y)
-    )
+    new_width = max(1, round(mask.width * scale_x))
+    new_height = max(1, round(mask.height * scale_y))
 
     mask = mask.resize(
         (new_width, new_height),
         Image.Resampling.BICUBIC
     )
 
-    # Add transparent padding for the curved displacement.
+    angle = rng.uniform(-2.0, 2.0)
 
-    padding = 10
-
-    canvas = Image.new(
-        "L",
-        (
-            mask.width + padding * 2,
-            mask.height + padding * 2
-        ),
-        0
+    return mask.rotate(
+        angle,
+        resample=Image.Resampling.BICUBIC,
+        expand=True,
+        fillcolor=0
     )
-
-    canvas.paste(
-        mask,
-        (padding, padding)
-    )
-
-    source = canvas.load()
-
-    warped = Image.new(
-        "L",
-        canvas.size,
-        0
-    )
-
-    destination = warped.load()
-
-    width, height = canvas.size
-
-    amplitude_x = rng.uniform(*GLYPH_WARP_X)
-    amplitude_y = rng.uniform(*GLYPH_WARP_Y)
-
-    phase_x = rng.uniform(0, math.tau)
-    phase_y = rng.uniform(0, math.tau)
-
-    # Smooth horizontal and vertical displacement.
-
-    x_displacement = [
-        amplitude_x * math.sin(
-            math.tau * y / max(1, height - 1) + phase_x
-        )
-        for y in range(height)
-    ]
-
-    y_displacement = [
-        amplitude_y * math.sin(
-            math.tau * x / max(1, width - 1) + phase_y
-        )
-        for x in range(width)
-    ]
-
-    # Bilinear sampling keeps the warped edges smooth.
-
-    for y in range(height):
-
-        for x in range(width):
-
-            source_x = x + x_displacement[y]
-            source_y = y + y_displacement[x]
-
-            if (
-                source_x < 0
-                or source_y < 0
-                or source_x >= width - 1
-                or source_y >= height - 1
-            ):
-                continue
-
-            x0 = int(source_x)
-            y0 = int(source_y)
-
-            fx = source_x - x0
-            fy = source_y - y0
-
-            top_left = source[x0, y0]
-            top_right = source[x0 + 1, y0]
-            bottom_left = source[x0, y0 + 1]
-            bottom_right = source[x0 + 1, y0 + 1]
-
-            top = (
-                top_left * (1 - fx)
-                + top_right * fx
-            )
-
-            bottom = (
-                bottom_left * (1 - fx)
-                + bottom_right * fx
-            )
-
-            value = (
-                top * (1 - fy)
-                + bottom * fy
-            )
-
-            destination[x, y] = round(value)
-
-    return warped
 
 
 # ==========================================
@@ -927,8 +828,8 @@ def render_webp(
     image.convert("RGB").save(
         output,
         format="WEBP",
-        quality=94,
-        method=6
+        quality=85,
+        method=4
     )
 
     return output.getvalue()
