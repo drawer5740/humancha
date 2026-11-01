@@ -23,7 +23,7 @@ ALPHABET = (
     "ABCDEFGHiJLMNOPQRSTUVWXYZ"
     "qpabnjkhgdt"
     "3456789"
-    "#&%@+?="
+    "#&%+?="
 )
 
 BASE_DIR = Path(__file__).resolve().parent
